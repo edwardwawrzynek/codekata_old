@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CMakeRunConfigurationManager" shouldGenerate="true" shouldDeleteObsolete="true">
+    <generated />
+  </component>
+  <component name="CMakeSettings">
+    <configurations>
+      <configuration PROFILE_NAME="Debug" CONFIG_NAME="Debug" />
+    </configurations>
+  </component>
+  <component name="CargoProjects">
+    <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="d68de8e9-f21b-420a-8660-83864f5d457a" name="Default Changelist" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MacroExpansionManager">
+    <option name="directoryName" value="ronnq27h" />
+  </component>
+  <component name="ProjectId" id="1hhzydNX6LFOIcc4L505oISs1ND" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="cf.first.check.clang-format" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/Cargo.toml" />
+    <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
+    <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+    <property name="nodejs_package_manager_path" value="npm" />
+    <property name="org.rust.cargo.project.model.PROJECT_DISCOVERY" value="true" />
+  </component>
+  <component name="RunManager">
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Run" type="CargoCommandRunConfiguration" factoryName="Cargo Command" nameIsGenerated="true">
+      <option name="channel" value="DEFAULT" />
+      <option name="command" value="run" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <envs />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="RustProjectSettings">
+    <option name="toolchainHomeDirectory" value="/usr/bin" />
+    <option name="version" value="2" />
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="d68de8e9-f21b-420a-8660-83864f5d457a" name="Default Changelist" comment="" />
+      <created>1600478368470</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1600478368470</updated>
+      <workItem from="1600478369412" duration="39960000" />
+      <workItem from="1600794045701" duration="19891000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="1557" y="371" width="1355" height="287" key="#SQL_Dialects" timestamp="1600828839413">
+      <screen x="1280" y="0" width="1920" height="1080" />
+    </state>
+    <state x="1557" y="371" width="1355" height="287" key="#SQL_Dialects/1280.0.1920.1080/0.0.1280.800@1280.0.1920.1080" timestamp="1600828839413" />
+    <state x="1696" y="151" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1600478987190">
+      <screen x="1280" y="0" width="1920" height="1080" />
+    </state>
+    <state x="1696" y="151" key="#com.intellij.execution.impl.EditConfigurationsDialog/1280.0.1920.1080/0.0.1280.800@1280.0.1920.1080" timestamp="1600478987190" />
+    <state x="2022" y="275" width="426" height="479" key="FileChooserDialogImpl" timestamp="1600478391598">
+      <screen x="1280" y="0" width="1920" height="1080" />
+    </state>
+    <state x="2022" y="275" width="426" height="479" key="FileChooserDialogImpl/1280.0.1920.1080/0.0.1280.800@1280.0.1920.1080" timestamp="1600478391598" />
+    <state width="1878" height="308" key="GridCell.Tab.0.bottom" timestamp="1600835050315">
+      <screen x="1280" y="0" width="1920" height="1080" />
+    </state>
+    <state width="1238" height="210" key="GridCell.Tab.0.bottom/1280.0.1920.1080/0.0.1280.800@0.0.1280.800" timestamp="1600763758353" />
+    <state width="1878" height="308" key="GridCell.Tab.0.bottom/1280.0.1920.1080/0.0.1280.800@1280.0.1920.1080" timestamp="1600835050315" />
+    <state width="1878" height="308" key="GridCell.Tab.0.center" timestamp="1600835050315">
+      <screen x="1280" y="0" width="1920" height="1080" />
+    </state>
+    <state width="1238" height="210" key="GridCell.Tab.0.center/1280.0.1920.1080/0.0.1280.800@0.0.1280.800" timestamp="1600763758352" />
+    <state width="1878" height="308" key="GridCell.Tab.0.center/1280.0.1920.1080/0.0.1280.800@1280.0.1920.1080" timestamp="1600835050315" />
+    <state width="1878" height="308" key="GridCell.Tab.0.left" timestamp="1600835050314">
+      <screen x="1280" y="0" width="1920" height="1080" />
+    </state>
+    <state width="1238" height="210" key="GridCell.Tab.0.left/1280.0.1920.1080/0.0.1280.800@0.0.1280.800" timestamp="1600763758352" />
+    <state width="1878" height="308" key="GridCell.Tab.0.left/1280.0.1920.1080/0.0.1280.800@1280.0.1920.1080" timestamp="1600835050314" />
+    <state width="1878" height="308" key="GridCell.Tab.0.right" timestamp="1600835050315">
+      <screen x="1280" y="0" width="1920" height="1080" />
+    </state>
+    <state width="1238" height="210" key="GridCell.Tab.0.right/1280.0.1920.1080/0.0.1280.800@0.0.1280.800" timestamp="1600763758352" />
+    <state width="1878" height="308" key="GridCell.Tab.0.right/1280.0.1920.1080/0.0.1280.800@1280.0.1920.1080" timestamp="1600835050315" />
+    <state x="403" y="12" width="461" height="672" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser" timestamp="1600493438942">
+      <screen x="0" y="0" width="1280" height="800" />
+    </state>
+    <state x="403" y="12" width="461" height="672" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser/1280.0.1920.1080/0.0.1280.800@0.0.1280.800" timestamp="1600493438942" />
+    <state x="1735" y="163" width="1008" height="916" key="search.everywhere.popup" timestamp="1600819116848">
+      <screen x="1280" y="0" width="1920" height="1080" />
+    </state>
+    <state x="303" y="121" width="672" height="678" key="search.everywhere.popup/1280.0.1920.1080/0.0.1280.800@0.0.1280.800" timestamp="1600763528167" />
+    <state x="1735" y="163" width="1008" height="916" key="search.everywhere.popup/1280.0.1920.1080/0.0.1280.800@1280.0.1920.1080" timestamp="1600819116848" />
+  </component>
+</project>

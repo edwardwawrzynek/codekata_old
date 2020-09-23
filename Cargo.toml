@@ -1,0 +1,17 @@
+[package]
+name = "codekata"
+version = "0.1.0"
+authors = ["edwardwawrzynek <edward@wawrzynek.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rocket = "0.4.5"
+rocket_contrib = { version = "0.4.5", features = ["diesel_sqlite_pool"] }
+serde = { version = "1.0.116", features = ["derive"] }
+serde_json = "1.0.57"
+uuid = { version = "0.4", features = ["v4"] }
+sha2 = "0.9.1"
+dotenv = "0.10"
+diesel = "1.4.5"
