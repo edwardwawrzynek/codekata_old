@@ -2,7 +2,7 @@ use rocket::request::{Form, FromRequest, Outcome};
 use rocket_contrib::json::Json;
 
 use crate::models::{NewUser, User};
-use crate::{DBConn, Error, ErrorResp, IdResp};
+use crate::shared::{DBConn, Error, ErrorResp};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -10,6 +10,7 @@ use std::convert::TryFrom;
 use uuid::Uuid;
 extern crate bcrypt;
 extern crate time;
+use self::bcrypt::DEFAULT_COST;
 use diesel::prelude::*;
 use rocket::http::Status;
 use rocket::http::{Cookie, Cookies};
@@ -169,7 +170,7 @@ impl<'a> UserManager<'a> {
             let new_user = NewUser {
                 username,
                 display_name,
-                password_hash: &*bcrypt::hash(password.as_bytes(), 8)?,
+                password_hash: &*bcrypt::hash(password.as_bytes(), DEFAULT_COST)?,
                 api_key_hash: None,
             };
 
@@ -386,20 +387,62 @@ pub fn user_new(
     user: Form<NewUserForm>,
     db: DBConn,
     state: UserManagerState,
-) -> Result<Json<IdResp>, Json<ErrorResp>> {
-    let id = UserManager::new(db, &*state).new_user(
+) -> Result<Json<SuccessResp>, Json<ErrorResp>> {
+    UserManager::new(db, &*state).new_user(
         &*user.username,
         &*user.display_name,
         &*user.password,
     )?;
 
-    Ok(Json(IdResp {
-        id: id.id().to_string(),
-    }))
+    Ok(Json(SuccessResp { success: true }))
+}
+
+#[derive(Serialize)]
+pub struct UserResp {
+    username: String,
+    display_name: String,
+    has_api_key: bool,
+}
+
+#[get("/user")]
+pub fn user_get(user: User) -> Json<UserResp> {
+    Json(UserResp {
+        username: user.username,
+        display_name: user.display_name,
+        has_api_key: user.api_key_hash.is_some(),
+    })
 }
 
 #[derive(FromForm)]
-pub struct EditUserForm {}
+pub struct EditUserForm {
+    username: Option<String>,
+    display_name: Option<String>,
+    password: Option<String>,
+}
+
+#[post("/user/edit", data = "<edit>")]
+pub fn user_edit(
+    edit: Form<EditUserForm>,
+    db: DBConn,
+    state: UserManagerState,
+    mut user: User,
+) -> Result<Json<SuccessResp>, Json<ErrorResp>> {
+    let manage = UserManager::new(db, &*state);
+
+    if let Some(username) = &edit.username {
+        user.username = username.clone();
+    };
+    if let Some(display_name) = &edit.display_name {
+        user.display_name = display_name.clone();
+    };
+    if let Some(password) = &edit.password {
+        user.password_hash = bcrypt::hash(password, DEFAULT_COST).map_err(Error::from)?;
+    };
+
+    manage.save_user(&user)?;
+
+    Ok(Json(SuccessResp { success: true }))
+}
 
 #[derive(Serialize)]
 pub struct ApiKeyResponse {
@@ -418,6 +461,6 @@ pub fn user_generate_api_key(
 }
 
 #[catch(401)]
-pub fn unauthorized(req: &Request) -> Json<ErrorResp> {
+pub fn unauthorized(_: &Request) -> Json<ErrorResp> {
     Json(ErrorResp::from(Error::Unauthorized))
 }

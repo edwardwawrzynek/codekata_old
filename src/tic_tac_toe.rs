@@ -1,4 +1,4 @@
-use crate::{Game, GamePlayer};
+use crate::game::{Game, GamePlayer};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
