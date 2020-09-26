@@ -2,14 +2,11 @@
 
 #[macro_use]
 extern crate rocket;
-
 #[macro_use]
 extern crate rocket_contrib;
 #[macro_use]
 extern crate diesel;
-
 extern crate dotenv;
-
 use rocket::http::{Cookie, Cookies, Status};
 use rocket::request::{self, Form, FromRequest, Request};
 use rocket::response::Redirect;
@@ -22,23 +19,21 @@ use serde::de::DeserializeOwned;
 use serde::export::fmt::Display;
 use serde::export::TryFrom;
 use serde::{Deserialize, Serialize};
-use sha2::digest::DynDigest;
-use sha2::{Digest, Sha256};
+
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::ops::Add;
-use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
-use uuid::Uuid;
+use std::sync::{RwLock, RwLockWriteGuard};
 
-use crate::schema::db_games::dsl::db_games;
-use crate::DbSaveError::DBError;
 use diesel::prelude::*;
-use dotenv::dotenv;
-use std::env;
 use std::fmt::Debug;
 
 pub mod models;
 pub mod schema;
+pub mod users;
+use crate::users::{ApiKey, HashedApiKey, PlayerId};
+
+pub mod tic_tac_toe;
 
 pub type GamePlayer = u32;
 
@@ -49,7 +44,7 @@ pub trait Game: Clone + Debug {
     type State: Serialize + DeserializeOwned;
 
     /// Check if a game can be created with the number of players
-    fn check_num_players(players: usize) -> Self;
+    fn check_num_players(players: usize) -> bool;
     /// Create an instance of the game with the given number of players
     fn new_with_players(players: usize) -> Self;
     /// Create an instance of the game from the given state and number of players
@@ -76,8 +71,8 @@ impl Game for SimpleGame {
     type State = ();
 
     /// Check if a game can be created with the number of players
-    fn check_num_players(players: usize) -> Self {
-        SimpleGame()
+    fn check_num_players(players: usize) -> bool {
+        true
     }
     /// Create an instance of the game with the given number of players
     fn new_with_players(players: usize) -> Self {
@@ -107,21 +102,6 @@ impl Game for SimpleGame {
     /// Get the score for each player. If scores are not available at the current point in the game, return None.
     fn scores(&self) -> Option<Vec<Self::Score>> {
         Some(vec![0])
-    }
-}
-
-#[derive(PartialEq, Eq, Copy, Clone, Hash, Serialize, Deserialize, Default, Debug)]
-struct PlayerId(i32);
-
-impl PlayerId {
-    fn next(&self) -> PlayerId {
-        PlayerId(self.0 + 1)
-    }
-}
-
-impl ToString for PlayerId {
-    fn to_string(&self) -> String {
-        self.0.to_string()
     }
 }
 
@@ -177,7 +157,7 @@ impl<G: Game> TryFrom<DbGame> for GameInstance<G> {
     fn try_from(entry: DbGame) -> Result<GameInstance<G>, Self::Error> {
         let players = serde_json::from_str::<Vec<i32>>(&entry.players)?
             .iter()
-            .map(|id| PlayerId(*id))
+            .map(|id| PlayerId::new(*id))
             .collect::<Vec<PlayerId>>();
         let game = match entry.state {
             Some(s) => Some(Box::new(G::from_state(
@@ -191,7 +171,7 @@ impl<G: Game> TryFrom<DbGame> for GameInstance<G> {
             game,
             players,
             name: entry.title,
-            owner: PlayerId(entry.owner_id),
+            owner: PlayerId::new(entry.owner_id),
         })
     }
 }
@@ -204,63 +184,21 @@ impl<'a, G: Game> From<&'a GameInstance<G>> for InsertDbGame<'a> {
         };
 
         let players =
-            serde_json::to_string(&inst.players.iter().map(|id| id.0).collect::<Vec<i32>>())
+            serde_json::to_string(&inst.players.iter().map(|id| id.id()).collect::<Vec<i32>>())
                 .unwrap_or("[]".to_string());
         InsertDbGame {
             id: inst.id.0,
             title: &inst.name,
             state,
-            owner_id: inst.owner.0,
+            owner_id: inst.owner.id(),
             players,
             active: if inst.active() { 1 } else { 0 },
         }
     }
 }
 
-/// A player, who plays in, joins, and/or creates games. There is a one-to-one relationship between api keys and players.
-#[derive(Serialize)]
-pub struct Player {
-    /// the players' (non necessarily unique) name
-    name: String,
-    // TODO: permissions for creating games
-}
-
-struct ApiKey(Uuid);
-
-impl ApiKey {
-    fn hash(&self) -> [u8; 32] {
-        let key_hash = Sha256::digest(self.0.as_bytes());
-
-        let mut hash = [0; 32];
-        for (i, b) in key_hash.as_slice().iter().enumerate() {
-            hash[i] = *b;
-        }
-
-        hash
-    }
-
-    fn new() -> ApiKey {
-        ApiKey(Uuid::new_v4())
-    }
-}
-
-impl ToString for ApiKey {
-    fn to_string(&self) -> String {
-        format!("{}", self.0.simple())
-    }
-}
-
-impl From<&str> for ApiKey {
-    fn from(str: &str) -> ApiKey {
-        match Uuid::parse_str(str) {
-            Ok(uuid) => ApiKey(uuid),
-            Err(_) => ApiKey(Uuid::nil()),
-        }
-    }
-}
-
 #[database("db")]
-struct DBConn(diesel::SqliteConnection);
+pub struct DBConn(diesel::SqliteConnection);
 
 struct GameManager<G: Game> {
     active_games: HashMap<GameId, GameInstance<G>>,
@@ -279,29 +217,82 @@ struct AppState<'a, G: Game> {
     db: DBConn,
 }
 
-#[derive(Debug, PartialEq)]
-enum DbSaveError {
+#[derive(Debug)]
+pub enum Error {
     InvalidGameId,
-    DBError,
-    SerializeError,
+    DBError(diesel::result::Error),
+    SerializeError(serde_json::Error),
+    MalformedApiKey,
+    UsernameAlreadyTaken,
+    HashError(bcrypt::BcryptError),
+    NoSuchUser,
+    InvalidPassword,
+    Unauthorized,
+    NoAuthorizationMethod,
+    InvalidApiKey,
+    GuardLoadError,
 }
 
-impl From<serde_json::Error> for DbSaveError {
-    fn from(e: serde_json::Error) -> DbSaveError {
-        DbSaveError::SerializeError
+impl From<serde_json::Error> for Error {
+    fn from(e: serde_json::Error) -> Error {
+        Error::SerializeError(e)
+    }
+}
+
+impl From<bcrypt::BcryptError> for Error {
+    fn from(e: bcrypt::BcryptError) -> Error {
+        Error::HashError(e)
+    }
+}
+
+impl From<diesel::result::Error> for Error {
+    fn from(e: diesel::result::Error) -> Error {
+        Error::DBError(e)
+    }
+}
+
+#[derive(Serialize, Debug)]
+pub struct ErrorResp {
+    error: String,
+}
+
+impl From<Error> for ErrorResp {
+    fn from(err: Error) -> ErrorResp {
+        ErrorResp {
+            error: match err {
+                Error::DBError(e) => format!("database error: {}", e.to_string()),
+                Error::SerializeError(e) => format!("data serialization error: {}", e.to_string()),
+                Error::InvalidGameId => "invalid game id".to_string(),
+                Error::MalformedApiKey => "malformed api key".to_string(),
+                Error::UsernameAlreadyTaken => "username already taken".to_string(),
+                Error::HashError(e) => format!("bcrypt hashing error: {}", e.to_string()),
+                Error::NoSuchUser => "invalid username".to_string(),
+                Error::InvalidPassword => "invalid password".to_string(),
+                Error::Unauthorized => "unauthorized".to_string(),
+                Error::InvalidApiKey => "invalid api key".to_string(),
+                Error::NoAuthorizationMethod => "no authorization method".to_string(),
+                Error::GuardLoadError => "error loading a request guard".to_string(),
+            },
+        }
+    }
+}
+
+impl From<Error> for rocket_contrib::json::Json<ErrorResp> {
+    fn from(e: Error) -> Self {
+        Json(ErrorResp::from(e))
     }
 }
 
 impl<G: Game> AppState<'_, G> {
     /// load a game from the database (only, not active_games)
-    fn load_game_from_db(&self, game_id: GameId) -> Result<GameInstance<G>, DbSaveError> {
-        use crate::schema::db_games::dsl::*;
+    fn load_game_from_db(&self, game_id: GameId) -> Result<GameInstance<G>, Error> {
+        use crate::schema::db_games;
 
-        db_games
+        db_games::dsl::db_games
             .find(&game_id.0)
             .first::<DbGame>(&*self.db)
             .map_or_else(
-                |_err| Err(DbSaveError::DBError),
+                |err| Err(Error::DBError(err)),
                 |entry| Ok(GameInstance::<G>::try_from(entry)?),
             )
     }
@@ -311,52 +302,49 @@ impl<G: Game> AppState<'_, G> {
         &self,
         game_id: GameId,
         manager_lock: RwLockWriteGuard<'l, GameManager<G>>,
-    ) -> Result<RwLockWriteGuard<'l, GameManager<G>>, DbSaveError> {
+    ) -> Result<RwLockWriteGuard<'l, GameManager<G>>, Error> {
         use crate::schema::db_games;
 
         let game = manager_lock.active_games.get(&game_id);
         let new_entry = match game {
             Some(game) => InsertDbGame::from(game),
-            None => return Err(DbSaveError::InvalidGameId),
+            None => return Err(Error::InvalidGameId),
         };
 
         let res = diesel::update(db_games::table)
             .set(&new_entry)
             .execute(&*self.db)
-            .map_or_else(|e| Err(DbSaveError::DBError), |r| Ok(manager_lock));
+            .map_or_else(|e| Err(Error::DBError(e)), |r| Ok(manager_lock));
 
         res
     }
 
     /// create a new game entry in the db and in active_games
-    fn new_game(&self, name: &str, owner: PlayerId) -> Result<GameId, DbSaveError> {
+    fn new_game(&self, name: &str, owner: PlayerId) -> Result<GameId, Error> {
         use crate::schema::db_games;
 
         let game = NewDbGame {
             players: "[]".to_string(),
             active: 1,
-            owner_id: owner.0,
+            owner_id: owner.id(),
             title: name,
             state: None,
         };
 
         // in order to get the assigned id, we do an INSERT than SELECT for highest id (sqlite doesn't support RETURNING)
-        let inserted_games = self
-            .db
-            .transaction::<_, diesel::result::Error, _>(|| {
-                let insert_count = diesel::insert_into(db_games::table)
-                    .values(&game)
-                    .execute(&*self.db)?;
-                assert_eq!(insert_count, 1);
+        let inserted_games = self.db.transaction::<_, diesel::result::Error, _>(|| {
+            let insert_count = diesel::insert_into(db_games::table)
+                .values(&game)
+                .execute(&*self.db)?;
+            assert_eq!(insert_count, 1);
 
-                Ok(db_games
-                    .order(db_games::id.desc())
-                    .limit(insert_count as i64)
-                    .load(&*self.db)?
-                    .into_iter()
-                    .collect::<Vec<DbGame>>())
-            })
-            .map_err(|e| DbSaveError::DBError)?;
+            Ok(db_games::dsl::db_games
+                .order(db_games::id.desc())
+                .limit(insert_count as i64)
+                .load(&*self.db)?
+                .into_iter()
+                .collect::<Vec<DbGame>>())
+        })?;
 
         let id = GameId(inserted_games[0].id);
 
@@ -377,8 +365,7 @@ impl<G: Game> AppState<'_, G> {
 
     /// get the game with the given id.
     /// possibly loads it from the database/cache, and may remove or insert it into the cache
-    fn get_game(&self, game_id: GameId) -> Result<GameInstance<G>, DbSaveError> {
-        use crate::schema::db_games::dsl::*;
+    fn get_game(&self, game_id: GameId) -> Result<GameInstance<G>, Error> {
         // check active_games for cached game
         let mut manager = self.manager.write().unwrap();
         let cached = manager.active_games.get(&game_id);
@@ -407,24 +394,6 @@ impl<G: Game> AppState<'_, G> {
 }
 
 #[derive(Serialize, Debug)]
-struct ErrorResp {
-    error: String,
-}
-
-impl From<DbSaveError> for ErrorResp {
-    fn from(err: DbSaveError) -> ErrorResp {
-        ErrorResp {
-            error: match err {
-                DbSaveError::DBError => "database error",
-                DbSaveError::SerializeError => "data serialization error",
-                DbSaveError::InvalidGameId => "invalid game id",
-            }
-            .to_string(),
-        }
-    }
-}
-
-#[derive(Serialize, Debug)]
 struct GameResp<G: Game> {
     name: String,
     owner_id: i32,
@@ -447,9 +416,9 @@ fn game_get(
     let game = app.get_game(GameId(id));
     match game {
         Ok(game) => Ok(Json(GameResp {
-            owner_id: game.owner.0,
+            owner_id: game.owner.id(),
             state: game.game.as_ref().and_then(|game| Some(game.state())),
-            player_ids: game.players.iter().map(|id| id.0).collect::<Vec<i32>>(),
+            player_ids: game.players.iter().map(|id| id.id()).collect::<Vec<i32>>(),
             active: game.active(),
             name: game.name,
         })),
@@ -463,7 +432,7 @@ struct NewGameForm {
 }
 
 #[derive(Serialize, Debug)]
-struct NewGameResp {
+pub struct IdResp {
     id: String,
 }
 
@@ -472,15 +441,15 @@ fn game_new(
     new_game: Form<NewGameForm>,
     db: DBConn,
     state: State<RwLock<GameManager<SimpleGame>>>,
-) -> Result<Json<NewGameResp>, Json<ErrorResp>> {
+) -> Result<Json<IdResp>, Json<ErrorResp>> {
     let app = AppState {
         db,
         manager: &*state,
     };
-    let id = app.new_game(&new_game.name, PlayerId(0));
+    let id = app.new_game(&new_game.name, PlayerId::new(0));
 
     match id {
-        Ok(id) => Ok(Json(NewGameResp { id: id.to_string() })),
+        Ok(id) => Ok(Json(IdResp { id: id.to_string() })),
         Err(err) => Err(Json(ErrorResp::from(err))),
     }
 }
@@ -489,6 +458,18 @@ fn main() {
     rocket::ignite()
         .attach(DBConn::fairing())
         .manage(RwLock::new(GameManager::<SimpleGame>::default()))
-        .mount("/api", routes![game_get, game_new])
+        .manage(RwLock::new(HashMap::<String, PlayerId>::new()))
+        .mount(
+            "/api",
+            routes![
+                game_get,
+                game_new,
+                users::user_new,
+                users::session_new,
+                users::session_delete,
+                users::user_generate_api_key
+            ],
+        )
+        .register(catchers![users::unauthorized])
         .launch();
 }

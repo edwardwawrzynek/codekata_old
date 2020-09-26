@@ -1,1 +1,5 @@
 /target
+db.sqlite
+cookies.txt
+.idea/
+.vscode/

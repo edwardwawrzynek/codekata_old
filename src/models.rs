@@ -1,4 +1,5 @@
 use crate::schema::db_games;
+use crate::schema::users;
 
 #[derive(Queryable, Debug)]
 pub struct DbGame {
@@ -29,4 +30,23 @@ pub struct NewDbGame<'a> {
     pub owner_id: i32,
     pub players: String,
     pub active: i32,
+}
+
+#[derive(Queryable, Insertable, AsChangeset, Clone)]
+#[table_name = "users"]
+pub struct User {
+    pub id: i32,
+    pub username: String,
+    pub display_name: String,
+    pub password_hash: String,
+    pub api_key_hash: Option<String>,
+}
+
+#[derive(Insertable)]
+#[table_name = "users"]
+pub struct NewUser<'a> {
+    pub username: &'a str,
+    pub display_name: &'a str,
+    pub password_hash: &'a str,
+    pub api_key_hash: Option<&'a str>,
 }
