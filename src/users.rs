@@ -2,7 +2,7 @@ use rocket::request::{Form, FromRequest, Outcome};
 use rocket_contrib::json::Json;
 
 use crate::models::{NewUser, User};
-use crate::shared::{DBConn, Error, ErrorResp};
+use crate::shared::{DBConn, Error, ErrorResp, SuccessResp};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -10,13 +10,14 @@ use std::convert::TryFrom;
 use uuid::Uuid;
 extern crate bcrypt;
 extern crate time;
-use self::bcrypt::DEFAULT_COST;
 use diesel::prelude::*;
 use rocket::http::Status;
 use rocket::http::{Cookie, Cookies};
 use rocket::{Request, State};
 use std::collections::HashMap;
 use std::sync::RwLock;
+
+const BCRYPT_COST: u32 = 8;
 
 const HEX_CHARS: [char; 16] = [
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
@@ -71,7 +72,6 @@ impl ApiKey {
         let key_hash = Sha256::digest(self.0.as_bytes());
 
         let mut hash = [0; 32];
-        let hash_string = String::new();
         for (i, b) in key_hash.as_slice().iter().enumerate() {
             hash[i] = *b;
         }
@@ -170,7 +170,7 @@ impl<'a> UserManager<'a> {
             let new_user = NewUser {
                 username,
                 display_name,
-                password_hash: &*bcrypt::hash(password.as_bytes(), DEFAULT_COST)?,
+                password_hash: &*bcrypt::hash(password.as_bytes(), BCRYPT_COST)?,
                 api_key_hash: None,
             };
 
@@ -217,7 +217,9 @@ impl<'a> UserManager<'a> {
     pub fn save_user(&self, user: &User) -> Result<(), Error> {
         use crate::schema::users;
 
-        diesel::update(users::table).set(user).execute(&*self.db)?;
+        diesel::update(users::dsl::users.find(user.id))
+            .set(user)
+            .execute(&*self.db)?;
         Ok(())
     }
 
@@ -331,11 +333,6 @@ pub struct NewSessionForm {
     password: String,
 }
 
-#[derive(Serialize)]
-pub struct SuccessResp {
-    success: bool,
-}
-
 #[post("/session/new", data = "<login>")]
 pub fn session_new(
     login: Form<NewSessionForm>,
@@ -402,6 +399,7 @@ pub struct UserResp {
     username: String,
     display_name: String,
     has_api_key: bool,
+    id: i32,
 }
 
 #[get("/user")]
@@ -410,6 +408,7 @@ pub fn user_get(user: User) -> Json<UserResp> {
         username: user.username,
         display_name: user.display_name,
         has_api_key: user.api_key_hash.is_some(),
+        id: user.id,
     })
 }
 
@@ -430,13 +429,19 @@ pub fn user_edit(
     let manage = UserManager::new(db, &*state);
 
     if let Some(username) = &edit.username {
+        if *username != user.username {
+            // check that username isn't already taken
+            if manage.find_user(&*username).is_ok() {
+                return Err(Json(ErrorResp::from(Error::UsernameAlreadyTaken)));
+            }
+        }
         user.username = username.clone();
     };
     if let Some(display_name) = &edit.display_name {
         user.display_name = display_name.clone();
     };
     if let Some(password) = &edit.password {
-        user.password_hash = bcrypt::hash(password, DEFAULT_COST).map_err(Error::from)?;
+        user.password_hash = bcrypt::hash(password, BCRYPT_COST).map_err(Error::from)?;
     };
 
     manage.save_user(&user)?;

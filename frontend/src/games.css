@@ -1,0 +1,41 @@
+.gamesContainer {
+  max-width: 1200px;
+  margin: 0.5rem auto;
+}
+
+.gameCont {
+  margin: 0.5rem 1rem;
+}
+
+.gameTitle {
+  text-align: left;
+  font-size: 1.5rem;
+}
+
+.gameId {
+  float: right;
+  font-size: 1.2rem;
+}
+
+.gamePlayers {
+  display: flex;
+  flex-direction: row;
+}
+
+.gamePlayer {
+  margin: 0rem 0.25rem;
+  border: 1px solid black;
+  flex: 1 1 0;
+  padding: 0.1rem;
+  text-align: center;
+}
+
+@media only screen and (max-width: 600px) {
+  .gamePlayers {
+    flex-direction: column;
+  }
+
+  .gamePlayer {
+    margin: 0.25rem 0rem !important;
+  }
+}

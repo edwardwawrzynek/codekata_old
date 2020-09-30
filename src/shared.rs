@@ -18,6 +18,11 @@ pub enum Error {
     NoAuthorizationMethod,
     InvalidApiKey,
     GuardLoadError,
+    GameAlreadyStarted,
+    AlreadyInGame,
+    InvalidNumPlayers,
+    NotGameOwner,
+    NotJoinedGame,
 }
 
 impl From<serde_json::Error> for Error {
@@ -40,7 +45,8 @@ impl From<diesel::result::Error> for Error {
 
 #[derive(Serialize, Debug)]
 pub struct ErrorResp {
-    error: String,
+    pub error: String,
+    pub success: bool,
 }
 
 impl From<Error> for ErrorResp {
@@ -59,7 +65,13 @@ impl From<Error> for ErrorResp {
                 Error::InvalidApiKey => "invalid api key".to_string(),
                 Error::NoAuthorizationMethod => "no authorization method".to_string(),
                 Error::GuardLoadError => "error loading a request guard".to_string(),
+                Error::GameAlreadyStarted => "game is already started".to_string(),
+                Error::AlreadyInGame => "player has already joined the game".to_string(),
+                Error::InvalidNumPlayers => "invalid number of players to start game".to_string(),
+                Error::NotGameOwner => "player is not the owner of game".to_string(),
+                Error::NotJoinedGame => "player has not joined the game".to_string(),
             },
+            success: false,
         }
     }
 }
@@ -72,5 +84,10 @@ impl From<Error> for rocket_contrib::json::Json<ErrorResp> {
 
 #[derive(Serialize, Debug)]
 pub struct IdResp {
-    pub(crate) id: String,
+    pub id: String,
+}
+
+#[derive(Serialize, Debug)]
+pub struct SuccessResp {
+    pub success: bool,
 }

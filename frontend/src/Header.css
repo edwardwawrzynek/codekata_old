@@ -1,0 +1,35 @@
+.header {
+  border-bottom: 1px solid black;
+  padding: 0.75rem;
+
+  font-size: 1.2rem;
+  font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+}
+
+.headerBtn {
+  margin: auto 0 auto 1.5rem;
+}
+
+.headerBtn:hover {
+  cursor: pointer;
+}
+
+.header a:link {
+  text-decoration: none;
+}
+
+.header a {
+  color: black;
+}
+
+.userMenuDropdown {
+  margin: 0.75rem 0 0 0;
+  padding: 0.75rem;
+  position: absolute;
+  border: 1px solid black;
+  right: 0;
+  min-width: 10rem;
+  z-index: 10;
+  background-color: white;
+}
+

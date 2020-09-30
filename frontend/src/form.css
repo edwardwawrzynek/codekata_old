@@ -1,0 +1,97 @@
+.formContainer {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.form {
+  margin: 2rem 0 0 0;
+  min-width: calc(min(400px, 90%));
+  max-width: 600px;
+}
+
+.formTitle {
+  display: block;
+  margin: 0 auto;
+  font-size: 2.0rem;
+  text-align: center;
+}
+
+.error {
+  border: 1px solid salmon;
+  border-radius: 5px;
+  background-color: rgb(255, 196, 190);
+  width: calc(100% - 0.6rem);
+  padding: 0.3rem;
+  margin-top: 1rem;
+}
+
+input[type=text], input[type=password], input[type=email] {
+  width: calc(100% - 1rem);
+  padding: 0.5rem;
+  font-size: 1rem;
+
+  border: 1px solid black;
+  color: black;
+}
+
+input[type=submit] {
+  margin: 0 auto 1rem auto;
+}
+
+.btn {
+  display: table;
+  margin: 0 auto;
+  font-size: 1.2rem;
+  padding: 0.3rem;
+  color: black;
+  background-color: white;
+  border: 1px solid black;
+}
+
+.btn:link {
+  text-decoration: none;
+}
+
+.btn:hover {
+  background-color: #444;
+  border: 1px solid #444;
+  color: white;
+  cursor: pointer;
+}
+
+input[type=submit]:hover {
+  cursor: pointer;
+}
+
+label {
+  display: block;
+  margin: 1rem 0;
+}
+
+.newGameForm {
+  display: flex;
+  flex-direction: row;
+  margin: 0 1rem 1.5rem 1rem;
+}
+
+.newGameTitle {
+  font-size: 1.2rem;
+  margin: auto 1rem auto 0;
+}
+
+.newGameSubmit {
+  margin: auto 0 auto 1rem;
+}
+
+.newGameBtn {
+  margin: auto 0 !important;
+}
+
+.gameActions {
+  margin: 0.5rem 0 0 0.25rem;
+}
+
+.gameActionsBtn {
+  margin: 0 0.25rem;
+}

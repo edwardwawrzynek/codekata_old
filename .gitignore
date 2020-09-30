@@ -3,3 +3,5 @@ db.sqlite
 cookies.txt
 .idea/
 .vscode/
+frontend/node_modules/
+frontend/build/

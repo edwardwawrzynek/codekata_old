@@ -19,4 +19,7 @@ table! {
     }
 }
 
-allow_tables_to_appear_in_same_query!(db_games, users,);
+allow_tables_to_appear_in_same_query!(
+    db_games,
+    users,
+);

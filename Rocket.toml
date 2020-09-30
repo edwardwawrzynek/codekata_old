@@ -1,2 +1,2 @@
 [global.databases]
-db = { url = "/home/edward/Documents/codekata/db.sqlite" }
+db = { url = "./codekata_db.sqlite" }
