@@ -30,6 +30,14 @@
   text-align: center;
 }
 
+.infoElem {
+  margin-right: 2rem;
+}
+
+.infoElem:last-child {
+  margin-right: 1rem;
+}
+
 @media only screen and (max-width: 600px) {
   .gamePlayers {
     flex-direction: column;
@@ -38,4 +46,15 @@
   .gamePlayer {
     margin: 0.25rem 0rem !important;
   }
+}
+
+.gomoku {
+  display: block;
+  margin: 0 auto;
+  background-color: #FFE4C4;
+}
+
+.playInstructions {
+  margin: 0 auto;
+  display: table;
 }

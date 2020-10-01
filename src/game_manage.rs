@@ -1,7 +1,7 @@
-use crate::game::{Game, GamePlayer};
-use crate::models::{DBGameId, DbGame, InsertDbGame, NewDbGame, User};
+use crate::game::{Game, GameOutcome, GamePlayer};
+use crate::models::{DbGame, InsertDbGame, NewDbGame, User};
 use crate::shared::{DBConn, Error, ErrorResp, IdResp, SuccessResp};
-use crate::users::{PlayerId, UserManager, UserManagerState};
+use crate::users::PlayerId;
 use core::fmt::Debug;
 use diesel::prelude::*;
 use rocket::request::Form;
@@ -11,14 +11,12 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::{From, TryFrom};
 use std::sync::{RwLock, RwLockWriteGuard};
+use rocket_contrib::databases::diesel::connection::SimpleConnection;
 
 #[derive(PartialEq, Eq, Copy, Clone, Hash, Serialize, Deserialize, Default, Debug)]
 pub struct GameId(i32);
 
 impl GameId {
-    fn next(&self) -> GameId {
-        GameId(self.0 + 1)
-    }
     fn id(&self) -> i32 {
         self.0
     }
@@ -42,18 +40,6 @@ struct GameInstance<G: Game> {
 }
 
 impl<G: Game> GameInstance<G> {
-    fn new(name: String, owner: PlayerId, id: GameId) -> GameInstance<G> {
-        return GameInstance {
-            id,
-            name,
-            owner,
-            game: None,
-            players: Vec::new(),
-        };
-    }
-}
-
-impl<G: Game> GameInstance<G> {
     /// check if the game has been started
     fn started(&self) -> bool {
         match &self.game {
@@ -67,6 +53,14 @@ impl<G: Game> GameInstance<G> {
             None => false,
             Some(g) => !g.finished(),
         }
+    }
+    /// get GamePlayer for a player id
+    fn get_player_index(&self, player: PlayerId) -> Result<GamePlayer, Error> {
+        Ok(self
+            .players
+            .iter()
+            .position(|id| *id == player)
+            .map_or(Err(Error::NotJoinedGame), |index| Ok(index as u32))?)
     }
 }
 
@@ -132,7 +126,15 @@ struct AppState<'a, G: Game> {
     db: DBConn,
 }
 
-impl<G: Game> AppState<'_, G> {
+impl<'a, G: Game> AppState<'a, G> {
+    pub fn new(db: DBConn, manager: &'a RwLock<GameManager<G>>) -> Self {
+        db.0.batch_execute("PRAGMA busy_timeout = 3000;");
+        AppState {
+            db,
+            manager
+        }
+    }
+
     /// load a game from the database (only, not active_games)
     fn load_game_from_db(&self, game_id: GameId) -> Result<GameInstance<G>, Error> {
         use crate::schema::db_games;
@@ -158,7 +160,7 @@ impl<G: Game> AppState<'_, G> {
         let res = diesel::update(db_games::dsl::db_games.find(game.id.id()))
             .set(&new_entry)
             .execute(&*self.db)
-            .map_or_else(|e| Err(Error::DBError(e)), |r| Ok(manager_lock));
+            .map_or_else(|e| Err(Error::DBError(e)), |_| Ok(manager_lock));
 
         res
     }
@@ -239,11 +241,14 @@ impl<G: Game> AppState<'_, G> {
     /// save a game
     /// possibly saves to the cache or db
     fn save_game(&self, game: GameInstance<G>) -> Result<(), Error> {
-        let mut manager = self.manager.write().unwrap();
+        let manager = self.manager.write().unwrap();
         if game.active() {
+            // TODO: this isn't needed, but cache needs to be flushed to db when app is shut down
+            let mut manager = self.save_game_to_db(&game, manager)?;
             manager.active_games.insert(game.id, game);
         } else {
-            self.save_game_to_db(&game, manager)?;
+            let mut manager = self.save_game_to_db(&game, manager)?;
+            manager.active_games.remove(&game.id);
         }
 
         Ok(())
@@ -311,13 +316,15 @@ impl<G: Game> AppState<'_, G> {
         use crate::schema::db_games;
 
         let ids = db_games::dsl::db_games
-            .select((db_games::dsl::id))
+            .select(db_games::dsl::id)
             .order(db_games::id.desc())
             .load::<i32>(&*self.db)?;
 
         Ok(ids)
     }
 }
+
+pub type AppReqState<'a> = State<'a, RwLock<GameManager<crate::GameType>>>;
 
 #[derive(Serialize, Debug)]
 pub struct GameResp<G: Game> {
@@ -329,18 +336,16 @@ pub struct GameResp<G: Game> {
     active: bool,
     started: bool,
     waiting_on: Vec<bool>,
+    outcome: String,
 }
 
 #[get("/game/<id>")]
 pub fn game_get(
     id: i32,
     db: DBConn,
-    state: State<RwLock<GameManager<crate::SimpleGame>>>,
-) -> Result<Json<GameResp<crate::SimpleGame>>, Json<ErrorResp>> {
-    let app = AppState {
-        db,
-        manager: &*state,
-    };
+    state: AppReqState,
+) -> Result<Json<GameResp<crate::GameType>>, Json<ErrorResp>> {
+    let app = AppState::new(db, &*state);
 
     let game = app.get_game(GameId(id))?;
 
@@ -359,16 +364,29 @@ pub fn game_get(
 
     let player_ids = game.players.iter().map(|id| id.id()).collect::<Vec<i32>>();
 
-    let waiting_on = game
-        .players
-        .iter()
-        .enumerate()
-        .map(|(index, id)| {
-            game.game
-                .as_ref()
-                .map_or(false, |g| g.waiting_on(index as u32))
-        })
-        .collect::<Vec<bool>>();
+    let waiting_on = if game.active() {
+        game.players
+            .iter()
+            .enumerate()
+            .map(|(index, _)| {
+                game.game
+                    .as_ref()
+                    .map_or(false, |g| g.waiting_on(index as u32))
+            })
+            .collect::<Vec<bool>>()
+    } else {
+        Vec::<bool>::new()
+    };
+
+    let outcome = game
+        .game
+        .as_ref()
+        .map_or(format!("No Outcome Yet"), |g| match g.outcome() {
+            GameOutcome::Win(player) => format!("{} Wins!", &players[player as usize]),
+            GameOutcome::Tie => format!("Game Tied!"),
+            GameOutcome::Other(msg) => msg,
+            GameOutcome::None => format!("No Outcome Yet"),
+        });
 
     Ok(Json(GameResp {
         owner_id: game.owner.id(),
@@ -379,7 +397,66 @@ pub fn game_get(
         started: game.started(),
         waiting_on,
         name: game.name,
+        outcome,
     }))
+}
+
+#[derive(Serialize)]
+pub struct NeededResp {
+    needed: bool,
+}
+
+#[get("/game/<id>/move_needed")]
+pub fn game_move_needed(
+    id: i32,
+    db: DBConn,
+    state: AppReqState,
+    user: User,
+) -> Result<Json<NeededResp>, Json<ErrorResp>> {
+    let app = AppState::new(db, &*state);
+    let game = app.load_game_from_db(GameId(id))?;
+    if !game.active() {
+        Ok(Json(NeededResp { needed: false }))
+    } else {
+        let player_index = game.get_player_index(PlayerId::new(user.id))?;
+        let needed = game
+            .game
+            .as_ref()
+            .map_or(false, |game| game.waiting_on(player_index));
+        Ok(Json(NeededResp { needed }))
+    }
+}
+
+#[post("/game/<id>/move", data = "<player_move>")]
+pub fn game_move(
+    id: i32,
+    player_move: Form<<crate::GameType as Game>::Move>,
+    db: DBConn,
+    state: AppReqState,
+    user: User,
+) -> Result<Json<SuccessResp>, Json<ErrorResp>> {
+    let app = AppState::new(db, &*state);
+    let mut game = app.get_game(GameId(id))?;
+    if !game.active() {
+        Err(Json(ErrorResp::from(Error::WrongTurn)))
+    } else {
+        let player_index = game.get_player_index(PlayerId::new(user.id))?;
+        match game.game.as_mut() {
+            Some(game_int) => {
+                if game_int.waiting_on(player_index) {
+                    if game_int.make_move(player_index, &*player_move) {
+                        app.save_game(game)?;
+                        Ok(Json(SuccessResp { success: true }))
+                    } else {
+                        Err(Json(ErrorResp::from(Error::InvalidMove)))
+                    }
+                } else {
+                    Err(Json(ErrorResp::from(Error::WrongTurn)))
+                }
+            }
+            None => Err(Json(ErrorResp::from(Error::GameNotStarted))),
+        }
+    }
 }
 
 #[derive(FromForm)]
@@ -391,13 +468,10 @@ pub struct NewGameForm {
 pub fn game_new(
     new_game: Form<NewGameForm>,
     db: DBConn,
-    state: State<RwLock<GameManager<crate::SimpleGame>>>,
+    state: AppReqState,
     user: User,
 ) -> Result<Json<IdResp>, Json<ErrorResp>> {
-    let app = AppState {
-        db,
-        manager: &*state,
-    };
+    let app = AppState::new(db, &*state);
     let id = app.new_game(&new_game.name, PlayerId::new(user.id));
 
     match id {
@@ -410,13 +484,10 @@ pub fn game_new(
 pub fn game_join(
     id: i32,
     db: DBConn,
-    state: State<RwLock<GameManager<crate::SimpleGame>>>,
+    state: AppReqState,
     user: User,
 ) -> Result<Json<SuccessResp>, Json<ErrorResp>> {
-    let app = AppState {
-        db,
-        manager: &*state,
-    };
+    let app = AppState::new(db, &*state);
     app.join_game(GameId(id), PlayerId::new(user.id))?;
     Ok(Json(SuccessResp { success: true }))
 }
@@ -425,13 +496,10 @@ pub fn game_join(
 pub fn game_leave(
     id: i32,
     db: DBConn,
-    state: State<RwLock<GameManager<crate::SimpleGame>>>,
+    state: AppReqState,
     user: User,
 ) -> Result<Json<SuccessResp>, Json<ErrorResp>> {
-    let app = AppState {
-        db,
-        manager: &*state,
-    };
+    let app = AppState::new(db, &*state);
     app.leave_game(GameId(id), PlayerId::new(user.id))?;
     Ok(Json(SuccessResp { success: true }))
 }
@@ -440,13 +508,10 @@ pub fn game_leave(
 pub fn game_start(
     id: i32,
     db: DBConn,
-    state: State<RwLock<GameManager<crate::SimpleGame>>>,
+    state: AppReqState,
     user: User,
 ) -> Result<Json<SuccessResp>, Json<ErrorResp>> {
-    let app = AppState {
-        db,
-        manager: &*state,
-    };
+    let app = AppState::new(db, &*state);
     app.start_game(GameId(id), PlayerId::new(user.id))?;
     Ok(Json(SuccessResp { success: true }))
 }
@@ -457,14 +522,8 @@ pub struct IndexResp {
 }
 
 #[get("/game/index")]
-pub fn game_index(
-    db: DBConn,
-    state: State<RwLock<GameManager<crate::SimpleGame>>>,
-) -> Result<Json<IndexResp>, Json<ErrorResp>> {
-    let app = AppState {
-        db,
-        manager: &*state,
-    };
+pub fn game_index(db: DBConn, state: AppReqState) -> Result<Json<IndexResp>, Json<ErrorResp>> {
+    let app = AppState::new(db, &*state);
     let games = app.list_games()?;
 
     Ok(Json(IndexResp { games }))

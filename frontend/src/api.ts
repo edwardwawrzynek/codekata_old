@@ -1,4 +1,4 @@
-export const API_ROUTE = process.env.NODE_ENV == "development" ? "https://localhost:8000/api" : "/api";
+export const API_ROUTE = process.env.NODE_ENV == "development" ? "http://localhost:8000/api" : "/api";
 export const GET_USER = `${API_ROUTE}/user`;
 export const NEW_USER = `${API_ROUTE}/user/new`;
 export const NEW_SESSION = `${API_ROUTE}/session/new`;
@@ -18,6 +18,9 @@ export function GAME_LEAVE(id: number) {
 }
 export function GAME_START(id: number) {
   return `${API_ROUTE}/game/${id}/start`;
+}
+export function GAME_MOVE(id: number) {
+  return `${API_ROUTE}/game/${id}/move`;
 }
 
 export const rejectedPromiseHandler = (e: any) => {

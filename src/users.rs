@@ -16,6 +16,7 @@ use rocket::http::{Cookie, Cookies};
 use rocket::{Request, State};
 use std::collections::HashMap;
 use std::sync::RwLock;
+use rocket_contrib::databases::diesel::connection::SimpleConnection;
 
 const BCRYPT_COST: u32 = 8;
 
@@ -140,6 +141,7 @@ pub type UserManagerState<'a> = State<'a, RwLock<HashMap<String, PlayerId>>>;
 
 impl<'a> UserManager<'a> {
     pub fn new(db: DBConn, sessions: &'a RwLock<HashMap<String, PlayerId>>) -> Self {
+        db.0.batch_execute("PRAGMA busy_timeout = 3000;");
         UserManager { db, sessions }
     }
 

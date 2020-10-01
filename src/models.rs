@@ -32,11 +32,6 @@ pub struct NewDbGame<'a> {
     pub active: i32,
 }
 
-#[derive(Queryable)]
-pub struct DBGameId {
-    pub id: i32,
-}
-
 #[derive(Queryable, Insertable, AsChangeset, Clone)]
 #[table_name = "users"]
 pub struct User {

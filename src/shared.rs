@@ -2,7 +2,7 @@ use rocket_contrib::json::Json;
 use serde::Serialize;
 
 #[database("db")]
-pub struct DBConn(diesel::SqliteConnection);
+pub struct DBConn(pub(crate) diesel::SqliteConnection);
 
 #[derive(Debug)]
 pub enum Error {
@@ -23,6 +23,9 @@ pub enum Error {
     InvalidNumPlayers,
     NotGameOwner,
     NotJoinedGame,
+    GameNotStarted,
+    WrongTurn,
+    InvalidMove,
 }
 
 impl From<serde_json::Error> for Error {
@@ -70,6 +73,9 @@ impl From<Error> for ErrorResp {
                 Error::InvalidNumPlayers => "invalid number of players to start game".to_string(),
                 Error::NotGameOwner => "player is not the owner of game".to_string(),
                 Error::NotJoinedGame => "player has not joined the game".to_string(),
+                Error::GameNotStarted => "game has not started yet".to_string(),
+                Error::WrongTurn => "player played out of turn".to_string(),
+                Error::InvalidMove => "invalid move".to_string(),
             },
             success: false,
         }

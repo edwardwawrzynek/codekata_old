@@ -1,4 +1,4 @@
-import React, { Component, Fragment, useEffect, useState } from 'react';
+import React, { Component, Fragment, useEffect, useState, useRef } from 'react';
 import { Link, Redirect } from 'react-router-dom';
 import './form.css';
 import './flex.css';
@@ -6,8 +6,10 @@ import './games.css';
 import { checkError, GAME_INDEX, GET_USER, NEW_SESSION, NEW_USER, postArgs, rejectedPromiseHandler, SessionInfo, USER_EDIT, GET_GAME, GAME_NEW, GAME_JOIN, GAME_LEAVE, GAME_START } from './api';
 import { useHistory } from "react-router-dom";
 import AuthRequired from './AuthRequired';
+import Gomoku from './Gomoku';
 
-export const COLORS = ["CornflowerBlue", "Crimson", "DarkOrange", "Olive"];
+export const COLORS = ["black", "white"];
+export const TEXT_COLORS = ["white", "black"];
 
 interface NewGameProps {
   game_update_callback: () => void
@@ -54,36 +56,57 @@ export default function Games(props: GamesProps) {
   const [numLoaded, setNumLoaded] = useState(3);
   const [totalNumGames, setTotalNumGames] = useState(-1);
   const [games, setGames] = useState([] as number[]);
+  const [shedId, setShedId] = useState(-1);
+
+  const mountedRef = useRef(true);
 
   let history = useHistory();
 
-  function loadGames(numToLoad: number) {
+  function loadGames() {
+    if(shedId != -1) {
+      window.clearTimeout(shedId);
+    }
+
     fetch(GAME_INDEX, {
       method: 'GET'
     }).then(resp => (resp.json())).then(json => {
       if(checkError(json)) {
         setTotalNumGames(json.games.length);
-        const games = json.games.slice(0, numToLoad);
+        const games = json.games.slice(0, numLoaded);
         setGames(games);
       }
-    }).catch(rejectedPromiseHandler);
+    }).catch(rejectedPromiseHandler).finally(() => {
+      if(shedId != -1) {
+        window.clearTimeout(shedId);
+      }
+      if(mountedRef.current) {
+        setShedId(window.setTimeout(() => loadGames(), 2000));
+      }
+    });
   }
 
-  useEffect(() => loadGames(numLoaded), []);
+  useEffect(() => {
+    loadGames();
+
+    return () => {
+      mountedRef.current = false;
+      if(shedId != -1) window.clearTimeout(shedId);
+    }
+  }, []);
 
   return (
     <div className="gamesContainer">
       {props.session.logged_in &&
-        <NewGame game_update_callback={() => loadGames(numLoaded)} />
+        <NewGame game_update_callback={() => loadGames()} />
       }
       {games.map((id) =>
-        <Game id={id} session={props.session} game_update_callback={() => loadGames(numLoaded)} key={id} />
+        <Game id={id} session={props.session} game_update_callback={() => loadGames()} key={id} />
       )}
-      {(totalNumGames == -1 || numLoaded < totalNumGames) &&
+      {(totalNumGames == -1 || numLoaded < totalNumGames + 3) &&
         <button onClick={
           () => { 
-            loadGames(numLoaded + 3);
             setNumLoaded(numLoaded + 3);
+            loadGames();
           }
         } className="btn">Load More Games</button>
       }
@@ -102,13 +125,25 @@ export interface GameProps {
 
 export function Game(props: GameProps) {
   const [game, setGame] = useState(null as any);
+  const [shedId, setShedId] = useState(-1);
+
+  const mountedRef = useRef(true);
 
   function loadGame(id: number) {
+    if(shedId != -1) {
+      window.clearTimeout(shedId);
+    }
     fetch(GET_GAME(id), {
       method: 'GET'
     }).then((resp) => resp.json()).then((json) => {
       setGame(json);
-      console.log(json);
+    }).catch(rejectedPromiseHandler).finally(() => {
+      if(shedId != -1) {
+        window.clearTimeout(shedId);
+      }
+      if(mountedRef.current) {
+        setShedId(window.setTimeout(() => loadGame(id), 1500));
+      }
     })
   }
 
@@ -123,16 +158,63 @@ export function Game(props: GameProps) {
     }).catch(rejectedPromiseHandler);
   }
 
-  useEffect(() => { loadGame(props.id) }, []);
+  useEffect(() => { 
+    loadGame(props.id);
+    
+    return () => {
+      mountedRef.current = false;
+      if(shedId != -1) {
+        window.clearTimeout(shedId);
+      }
+    }
+  }, []);
 
   if(game == null) return <div></div>;
 
-  // figure out game action permissions
-  let showJoin = !game.player_ids.includes(props.session.id);
-  let showLeave = !showJoin;
-  let showStart = game.owner_id == props.session.id;
+  let waitingOn = "";
+  let waitingOnUs = false;
+  let usInGame = false;
+  for(let i = 0; i < game.waiting_on.length; i++) {
+    if(props.session.logged_in && props.session.id == game.player_ids[i]) {
+      usInGame = true;
+    }
+    if(game.waiting_on[i]) {
+      if (waitingOn != "") waitingOn += ", ";
+      waitingOn += game.players[i];
 
-  let action_controls = (props.session.logged_in && !game.started) && (
+      if(props.session.logged_in && props.session.id == game.player_ids[i]) {
+        waitingOnUs = true;
+      }
+    }
+  }
+
+  const game_info = (
+    <Fragment>
+      <div className="flexShrink infoElem">
+        <span>
+          {game.started ? (game.active ? "Active" : "Finished") : "Waiting to Start"}
+        </span>
+      </div>
+      <div className="flexShrink infoElem">
+        <span>
+          {waitingOn != "" && <span>Waiting On: {waitingOn}</span>}
+        </span>
+      </div>
+      <div className="flexExpand" />
+      <div className="flexShrink infoElem">
+        <span>
+          Outcome: {game.outcome}
+        </span>
+      </div>
+    </Fragment>
+  )
+
+  // figure out game action permissions
+  const showJoin = !game.player_ids.includes(props.session.id);
+  const showLeave = !showJoin;
+  const showStart = game.owner_id == props.session.id;
+
+  const action_controls = (props.session.logged_in && !game.started) && (
     <Fragment>
       {showStart && 
         <div className="flexShrink">
@@ -141,12 +223,12 @@ export function Game(props: GameProps) {
       }
       {showJoin &&
         <div className="flexShrink gameActionsBtn">
-          <button className="btn" onClick={(e) => game_action(GAME_JOIN)}>+ Join Game</button>
+          <button className="btn gameActionsBtn" onClick={(e) => game_action(GAME_JOIN)}>+ Join Game</button>
         </div>
       }
       {showLeave &&
         <div className="flexShrink gameActionsBtn">
-          <button className="btn" onClick={(e) => game_action(GAME_LEAVE)}>- Leave Game</button>
+          <button className="btn gameActionsBtn" onClick={(e) => game_action(GAME_LEAVE)}>- Leave Game</button>
         </div>
       }
     </Fragment>
@@ -172,19 +254,19 @@ export function Game(props: GameProps) {
         }
         {game.players.length != 0 &&
           game.players.map((player: string, index: number) =>
-            <div className="gamePlayer" style={{backgroundColor: COLORS[index]}} key={index}>{player}</div>
+            <div className="gamePlayer" style={{backgroundColor: COLORS[index], color: TEXT_COLORS[index]}} key={index}>{player}</div>
           )
         }
       </div>
-      <div className="flexHorizontal gameActions">
-        <div className="flexExpand">
-          <span>
-            {game.started ? (game.active ? "Active" : "Finished") : "Waiting to Start"}
-          </span>
-        </div>
+      <div className="flexHorizontal gameActions flexVerticalMobile">
+        {game_info}
         {action_controls}
       </div>
-      <div style={{width:"400px", height:"400px", backgroundColor:"red", margin: "0 auto"}}></div>
+      <div className="playInstructions">
+        {waitingOnUs && <span>It is your turn. Click where you would like to move.</span>}
+        {!waitingOnUs && usInGame && <span>It is not your turn.</span>}
+      </div>
+      <Gomoku colors={COLORS} id={props.id} state={game.state} width={Math.min(window.innerWidth - 100, 700)} height={Math.min(window.innerWidth - 100, 700)} do_play={waitingOnUs} />
     </div>
   );
 }
