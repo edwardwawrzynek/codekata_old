@@ -7,7 +7,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \
-  build-essential curl sqlite3 nodejs npm && \
+  build-essential curl sqlite3 nodejs npm libsqlite3-dev && \
   apt-get update
 
 
@@ -23,11 +23,9 @@ RUN npm install
 COPY frontend ./
 RUN npm run build
 
-RUN apt-get install -y libsqlite3-dev
-
 WORKDIR /app
 COPY . ./
-RUN if [ ! -f codekata_db.sqlite ]; then cargo install dielse_cli; touch codekata_db.sqlite; diesel migration run --database-url codekata_db.sqlite; fi;
+RUN if [ ! -f codekata_db.sqlite ]; then cargo install diesel_cli; touch codekata_db.sqlite; diesel migration run --database-url codekata_db.sqlite; fi;
 
 RUN cargo build --release
 
