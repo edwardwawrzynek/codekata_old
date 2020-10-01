@@ -18,7 +18,7 @@ export default function Gomoku(props: GomokuProps) {
 
   const w = props.width;
   const h = props.height;
-  const BOARD_SIZE = 19;
+  const BOARD_SIZE = 15;
   const CELL_SIZE = w/(BOARD_SIZE + 1);
 
   function drawGame() {

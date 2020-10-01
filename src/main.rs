@@ -69,6 +69,7 @@ fn main() {
         .mount(
             "/api",
             routes![
+                game_manage::game_get_user_authd,
                 game_manage::game_get,
                 game_manage::game_move_needed,
                 game_manage::game_move,

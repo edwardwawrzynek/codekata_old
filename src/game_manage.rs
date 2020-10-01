@@ -91,7 +91,7 @@ impl<G: Game> TryFrom<DbGame> for GameInstance<G> {
 impl<'a, G: Game> From<&'a GameInstance<G>> for InsertDbGame<'a> {
     fn from(inst: &GameInstance<G>) -> InsertDbGame {
         let state = match &inst.game {
-            Some(g) => serde_json::to_string(&g.state()).ok(),
+            Some(g) => serde_json::to_string(&g.state(0)).ok(),
             None => None,
         };
 
@@ -127,6 +127,7 @@ struct AppState<'a, G: Game> {
 }
 
 impl<'a, G: Game> AppState<'a, G> {
+    #[allow(unused_must_use)]
     pub fn new(db: DBConn, manager: &'a RwLock<GameManager<G>>) -> Self {
         db.0.batch_execute("PRAGMA busy_timeout = 3000;");
         AppState {
@@ -339,8 +340,8 @@ pub struct GameResp<G: Game> {
     outcome: String,
 }
 
-#[get("/game/<id>")]
-pub fn game_get(
+fn game_get_internal(
+    player_id: i32,
     id: i32,
     db: DBConn,
     state: AppReqState,
@@ -378,6 +379,8 @@ pub fn game_get(
         Vec::<bool>::new()
     };
 
+    let game_player_display_for = player_ids.iter().position(|id| *id == player_id).map_or(0, |index| index);
+
     let outcome = game
         .game
         .as_ref()
@@ -390,7 +393,7 @@ pub fn game_get(
 
     Ok(Json(GameResp {
         owner_id: game.owner.id(),
-        state: game.game.as_ref().and_then(|game| Some(game.state())),
+        state: game.game.as_ref().and_then(|game| Some(game.state(game_player_display_for as u32))),
         players,
         player_ids,
         active: game.active(),
@@ -399,6 +402,25 @@ pub fn game_get(
         name: game.name,
         outcome,
     }))
+}
+
+#[get("/game/<id>")]
+pub fn game_get_user_authd(
+    id: i32,
+    db: DBConn,
+    state: AppReqState,
+    user: User
+) -> Result<Json<GameResp<crate::GameType>>, Json<ErrorResp>> {
+    game_get_internal(user.id, id, db, state)
+}
+
+#[get("/game/<id>", rank = 2)]
+pub fn game_get(
+    id: i32,
+    db: DBConn,
+    state: AppReqState,
+) -> Result<Json<GameResp<crate::GameType>>, Json<ErrorResp>> {
+    game_get_internal(0, id, db, state)
 }
 
 #[derive(Serialize)]

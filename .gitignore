@@ -1,5 +1,6 @@
 /target
 db.sqlite
+codekata_db.sqlite
 cookies.txt
 .idea/
 .vscode/

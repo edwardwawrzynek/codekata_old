@@ -27,7 +27,7 @@ pub trait Game: Clone {
     fn from_state(state: Self::State, players: usize) -> Self;
 
     /// Get the serializable state of the game
-    fn state(&self) -> Self::State;
+    fn state(&self, for_player: GamePlayer) -> Self::State;
     /// Check if the game is finished
     fn finished(&self) -> bool;
     /// Check if the game is waiting on a move by the given player

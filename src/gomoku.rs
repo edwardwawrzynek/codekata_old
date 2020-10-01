@@ -1,8 +1,8 @@
 use crate::game::{Game, GameOutcome, GamePlayer};
 use serde::{Deserialize, Serialize};
 
-const BOARD_SIZE: usize = 19;
-const WIN_LEN: usize = 6;
+const BOARD_SIZE: usize = 15;
+const WIN_LEN: usize = 5;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Gomoku {
@@ -141,8 +141,25 @@ impl Game for Gomoku {
         state
     }
 
-    fn state(&self) -> Self::State {
-        self.clone()
+    fn state(&self, for_player: GamePlayer) -> Self::State {
+
+        let mut res = self.clone();
+        if for_player == 0 {
+            res
+        } else {
+            for x in 0..BOARD_SIZE {
+                for y in 0..BOARD_SIZE {
+                    if res.board[x][y] == 0 {
+                        res.board[x][y] = 1;
+                    } else if res.board[x][y] == 1 {
+                        res.board[x][y] = 0;
+                    }
+                }
+            }
+
+            res
+        }
+
     }
 
     fn finished(&self) -> bool {

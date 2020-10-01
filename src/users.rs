@@ -140,6 +140,7 @@ pub struct UserManager<'a> {
 pub type UserManagerState<'a> = State<'a, RwLock<HashMap<String, PlayerId>>>;
 
 impl<'a> UserManager<'a> {
+    #[allow(unused_must_use)]
     pub fn new(db: DBConn, sessions: &'a RwLock<HashMap<String, PlayerId>>) -> Self {
         db.0.batch_execute("PRAGMA busy_timeout = 3000;");
         UserManager { db, sessions }
