@@ -7,7 +7,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \
-  build-essential curl sqlite3 nodejs npm libsqlite3-dev && \
+  build-essential curl sqlite3 nodejs npm libsqlite3-dev libmysqlclient-dev libpq-dev && \
   apt-get update
 
 
@@ -25,6 +25,7 @@ RUN npm run build
 
 WORKDIR /app
 COPY . ./
+# Heroku doesn't support VOLUME command (heroku filesystem is ephemeral), so just generate a new db every time
 RUN if [ ! -f codekata_db.sqlite ]; then cargo install diesel_cli; touch codekata_db.sqlite; diesel migration run --database-url codekata_db.sqlite; fi;
 
 RUN cargo build --release
