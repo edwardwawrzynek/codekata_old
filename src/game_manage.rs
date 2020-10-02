@@ -1,17 +1,17 @@
 use crate::game::{Game, GameOutcome, GamePlayer};
 use crate::models::{DbGame, InsertDbGame, NewDbGame, User};
 use crate::shared::{DBConn, Error, ErrorResp, IdResp, SuccessResp};
-use crate::users::PlayerId;
+use crate::users::{ForwardingUser, PlayerId};
 use core::fmt::Debug;
 use diesel::prelude::*;
 use rocket::request::Form;
 use rocket::State;
+use rocket_contrib::databases::diesel::connection::SimpleConnection;
 use rocket_contrib::json::Json;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::{From, TryFrom};
 use std::sync::{RwLock, RwLockWriteGuard};
-use rocket_contrib::databases::diesel::connection::SimpleConnection;
 
 #[derive(PartialEq, Eq, Copy, Clone, Hash, Serialize, Deserialize, Default, Debug)]
 pub struct GameId(i32);
@@ -130,10 +130,7 @@ impl<'a, G: Game> AppState<'a, G> {
     #[allow(unused_must_use)]
     pub fn new(db: DBConn, manager: &'a RwLock<GameManager<G>>) -> Self {
         db.0.batch_execute("PRAGMA busy_timeout = 3000;");
-        AppState {
-            db,
-            manager
-        }
+        AppState { db, manager }
     }
 
     /// load a game from the database (only, not active_games)
@@ -379,7 +376,10 @@ fn game_get_internal(
         Vec::<bool>::new()
     };
 
-    let game_player_display_for = player_ids.iter().position(|id| *id == player_id).map_or(0, |index| index);
+    let game_player_display_for = player_ids
+        .iter()
+        .position(|id| *id == player_id)
+        .map_or(0, |index| index);
 
     let outcome = game
         .game
@@ -393,7 +393,10 @@ fn game_get_internal(
 
     Ok(Json(GameResp {
         owner_id: game.owner.id(),
-        state: game.game.as_ref().and_then(|game| Some(game.state(game_player_display_for as u32))),
+        state: game
+            .game
+            .as_ref()
+            .and_then(|game| Some(game.state(game_player_display_for as u32))),
         players,
         player_ids,
         active: game.active(),
@@ -404,21 +407,27 @@ fn game_get_internal(
     }))
 }
 
-#[get("/game/<id>")]
+#[get("/game/<id>?<dont_invert>")]
 pub fn game_get_user_authd(
     id: i32,
     db: DBConn,
     state: AppReqState,
-    user: User
+    user: ForwardingUser,
+    dont_invert: Option<bool>
 ) -> Result<Json<GameResp<crate::GameType>>, Json<ErrorResp>> {
-    game_get_internal(user.id, id, db, state)
+    let player_id = match dont_invert {
+        None | Some(false) => user.0.id,
+        Some(true) => 0
+    };
+    game_get_internal(player_id, id, db, state)
 }
 
-#[get("/game/<id>", rank = 2)]
+#[get("/game/<id>?<dont_invert>", rank = 2)]
 pub fn game_get(
     id: i32,
     db: DBConn,
     state: AppReqState,
+    dont_invert: Option<bool>
 ) -> Result<Json<GameResp<crate::GameType>>, Json<ErrorResp>> {
     game_get_internal(0, id, db, state)
 }

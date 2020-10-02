@@ -2,25 +2,15 @@
 
 A tool for running programming compeitions to play abstract board games. Currently, it is configured to run the game [gomoku](https://en.wikipedia.org/wiki/Gomoku).
 
+Codekata is deployed at [https://codekata.herokuapp.com](https://codekata.herokuapp.com). If you are writing a client, it is reccomened you test against this deployment.
+
+If you need to run codekata locally, see the "Setup" secion below.
+
 ## Gomoku
 Gomoku is played on a 15 x 15 board. Players take turns alternating placing stones, and the first player to get five or more stones in a row, column, or diagonal wins.
 
-## Setup
-The included `Dockerfile` runs the app, or you can do everything locally:
-
-1. Install [node/npm](https://nodejs.org/en/download/), [rust](https://www.rust-lang.org/tools/install), and [sqlite](https://sqlite.org/index.html).
-2. Clone this repo (`git clone https://github.com/edwardwawrzynek/codekata`)
-3. Build the frontend (`cd frontend; npm run build; cd ..`)
-4. Use nightly rust (`rustup default nightly`)
-5. Copy the sample DB (`cp codekata_db.sqlite.sample codekata_db.sqlite`)
-6. Build and start the server (`cargo run`) (by default, the server runs on http://localhost:8000)
-
-The default server config:
-- API Keys: `00000000000000000000000000000001`, `00000000000000000000000000000002`
-- User Account: email: `example@example.com`, password: `password`
-
 ## API Routes
-API keys have to be included in all requests as an `X-API-KEY` header (not a request parameter).
+API keys have to be included in all requests as an `X-API-KEY` http header (not as a request parameter).
 
 #### `POST /api/game/<game_id>/join`
 Join the given game. Returns:
@@ -70,4 +60,26 @@ If `success` is false, the response will include an `error` field describing wha
 5. Make a move: `POST /api/game/<game_id>/move`.
 6. Goto #3
 
-All requests need your api key sent as the `X-API-KEY` http header -- look at your library's documentation for how to do this
+All requests need your api key sent as the `X-API-KEY` http header -- look at your library's documentation for how to do this.
+
+## Docker Setup
+1. Install [docker](https://www.docker.com/).
+2. Clone the repo (`git clone https://github.com/edwardwawrzynek/codekata`)
+3. Build the image and run:
+```shell script
+docker build . -t codekata
+docker run --env PORT=8000 -p 8000:8000 codekata
+```
+
+Serves on http://localhost:8000.
+
+## Manual Setup
+
+1. Install [node and npm](https://nodejs.org/en/download/), [rust](https://www.rust-lang.org/tools/install), and [sqlite](https://sqlite.org/index.html).
+2. Clone this repo (`git clone https://github.com/edwardwawrzynek/codekata`)
+3. Build the frontend (`cd frontend; npm install; npm run build; cd ..`)
+4. Use nightly rust (`rustup default nightly`)
+5. Copy the sample DB (`cp codekata_db.sqlite.blank codekata_db.sqlite`)
+6. Build and start the server (`cargo run`)
+
+Serves on http://localhost:8000.

@@ -3,7 +3,6 @@ import {
   BrowserRouter as Router,
   Switch,
   Route,
-  Link
 } from "react-router-dom";
 import Header from './Header';
 import SignUp from './SignUp';
@@ -23,7 +22,7 @@ export default class App extends Component<{}, any> {
       method: 'GET',
       credentials: 'include',
      }).then((resp) => resp.json()).then(json => {
-      if(json.error == undefined) {
+      if(json.error === undefined) {
         this.setState({session: {
           logged_in: true,
           has_api_key: json.has_api_key,

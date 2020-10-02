@@ -14,9 +14,9 @@ use diesel::prelude::*;
 use rocket::http::Status;
 use rocket::http::{Cookie, Cookies};
 use rocket::{Request, State};
+use rocket_contrib::databases::diesel::connection::SimpleConnection;
 use std::collections::HashMap;
 use std::sync::RwLock;
-use rocket_contrib::databases::diesel::connection::SimpleConnection;
 
 const BCRYPT_COST: u32 = 8;
 
@@ -277,55 +277,84 @@ impl<'a> UserManager<'a> {
     }
 }
 
+fn user_request_guard<U: From<User>>(
+    request: &Request,
+    unauth_resp: Outcome<U, Error>,
+) -> Outcome<U, Error> {
+    // get db and sessions state guards
+    let db_guard = match request
+        .guard::<DBConn>()
+        .map_failure(|f| (f.0, Error::GuardLoadError))
+    {
+        Outcome::Success(db) => db,
+        Outcome::Failure(err) => return Outcome::Failure(err),
+        Outcome::Forward(f) => return Outcome::Forward(f),
+    };
+
+    let sessions_guard = match request
+        .guard::<UserManagerState>()
+        .map_failure(|f| (f.0, Error::GuardLoadError))
+    {
+        Outcome::Success(sessions) => sessions,
+        Outcome::Failure(err) => return Outcome::Failure(err),
+        Outcome::Forward(f) => return Outcome::Forward(f),
+    };
+
+    let manage = UserManager::new(db_guard, &*sessions_guard);
+
+    // check for session_key cookie
+    if let Some(cookie) = request.cookies().get_private("session_key") {
+        if let Some(user_id) = manage.lookup_session(cookie.value()) {
+            let user = manage.load_user(user_id);
+            match user {
+                Err(_) => unauth_resp,
+                Ok(user) => Outcome::Success(U::from(user)),
+            }
+        } else {
+            unauth_resp
+        }
+    } else {
+        // check for api key
+        let keys = request.headers().get("x-api-key").collect::<Vec<_>>();
+        if keys.len() == 1 {
+            match manage.find_user_by_api_key(&keys[0]) {
+                Ok(user) => Outcome::Success(U::from(user)),
+                Err(_) => unauth_resp,
+            }
+        } else {
+            unauth_resp
+        }
+    }
+}
+
 /// a request guard that checks that users are authenticated with a session (cookie) or api key (X-API-KEY header)
 impl<'a, 'r> FromRequest<'a, 'r> for User {
     type Error = Error;
 
     fn from_request(request: &'a Request<'r>) -> Outcome<Self, Self::Error> {
         // get db and sessions state guards
-        let db_guard = match request
-            .guard::<DBConn>()
-            .map_failure(|f| (f.0, Error::GuardLoadError))
-        {
-            Outcome::Success(db) => db,
-            Outcome::Failure(err) => return Outcome::Failure(err),
-            Outcome::Forward(f) => return Outcome::Forward(f),
-        };
+        user_request_guard(
+            request,
+            Outcome::Failure((Status::Unauthorized, Error::Unauthorized)),
+        )
+    }
+}
 
-        let sessions_guard = match request
-            .guard::<UserManagerState>()
-            .map_failure(|f| (f.0, Error::GuardLoadError))
-        {
-            Outcome::Success(sessions) => sessions,
-            Outcome::Failure(err) => return Outcome::Failure(err),
-            Outcome::Forward(f) => return Outcome::Forward(f),
-        };
+/// a request guard that checks for authentication or forwards if not present
+pub struct ForwardingUser(pub User);
 
-        let manage = UserManager::new(db_guard, &*sessions_guard);
+impl From<User> for ForwardingUser {
+    fn from(u: User) -> Self {
+        ForwardingUser(u)
+    }
+}
 
-        // check for session_key cookie
-        if let Some(cookie) = request.cookies().get_private("session_key") {
-            if let Some(user_id) = manage.lookup_session(cookie.value()) {
-                let user = manage.load_user(user_id);
-                match user {
-                    Err(e) => Outcome::Failure((Status::Unauthorized, e)),
-                    Ok(user) => Outcome::Success(user),
-                }
-            } else {
-                Outcome::Failure((Status::Unauthorized, Error::Unauthorized))
-            }
-        } else {
-            // check for api key
-            let keys = request.headers().get("x-api-key").collect::<Vec<_>>();
-            if keys.len() == 1 {
-                match manage.find_user_by_api_key(&keys[0]) {
-                    Ok(user) => Outcome::Success(user),
-                    Err(e) => Outcome::Failure((Status::Unauthorized, e)),
-                }
-            } else {
-                Outcome::Failure((Status::Unauthorized, Error::NoAuthorizationMethod))
-            }
-        }
+impl<'a, 'r> FromRequest<'a, 'r> for ForwardingUser {
+    type Error = Error;
+
+    fn from_request(request: &'a Request<'r>) -> Outcome<Self, Self::Error> {
+        // get db and sessions state guards
+        user_request_guard(request, Outcome::Forward(()))
     }
 }
 

@@ -1,8 +1,7 @@
-import React, { Component, Fragment, useState } from 'react';
-import { Link, Redirect } from 'react-router-dom';
+import React, { useState } from 'react';
 import './form.css';
 import './flex.css';
-import { GET_USER, NEW_SESSION, NEW_USER, postArgs, rejectedPromiseHandler, SessionInfo, USER_EDIT } from './api';
+import { rejectedPromiseHandler, SessionInfo, USER_EDIT } from './api';
 import { useHistory } from "react-router-dom";
 import AuthRequired from './AuthRequired';
 
@@ -26,19 +25,19 @@ export default function EditUser(props: EditUser) {
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if(password != passwordAgain) {
+    if(password !== passwordAgain) {
       setErrorMsg("password's don't match");
       return;
     }
 
     const data = new URLSearchParams();
-    if(username != "") {
+    if(username !== "") {
       data.append("username", username);
     }
-    if(displayName != "") {
+    if(displayName !== "") {
       data.append("display_name", displayName);
     }
-    if(password != "") {
+    if(password !== "") {
       data.append("password", password);
     }
 
@@ -47,11 +46,11 @@ export default function EditUser(props: EditUser) {
       credentials: 'include',
       body: data,
     }).then(resp => (resp.json())).then(json => {
-      if(json.error != undefined) {
+      if(json.error !== undefined) {
         setErrorMsg(json.error);
       } else {
         props.session_change_callback();
-        if(username != props.session.username || password != "") {
+        if(username !== props.session.username || password !== "") {
           history.push("/login");
         } else {
           history.push("/");
@@ -64,7 +63,7 @@ export default function EditUser(props: EditUser) {
     <div className="formContainer">
         <form className="form" onSubmit={(e) => { submit(e); }}>
           <span className="formTitle">Edit User</span>
-          {errorMsg != "" &&
+          {errorMsg !== "" &&
             <div className="error">
               {errorMsg}
             </div>

@@ -1,9 +1,8 @@
-import React, { Component, Fragment, useState } from 'react';
-import { Link, Redirect } from 'react-router-dom';
+import React, { Fragment, useState } from 'react';
+import { Link, } from 'react-router-dom';
 import './form.css';
 import './flex.css';
-import { checkError, GEN_API_KEY, GET_USER, NEW_SESSION, NEW_USER, postArgs, rejectedPromiseHandler, SessionInfo } from './api';
-import { useHistory } from "react-router-dom";
+import { checkError, GEN_API_KEY, rejectedPromiseHandler, SessionInfo } from './api';
 import AuthRequired from './AuthRequired';
 
 export interface ApiGenProps {
@@ -14,8 +13,6 @@ export interface ApiGenProps {
 export default function ApiGen(props: ApiGenProps) {
   const [generated, setGenerated] = useState(false);
   const [key, setKey] = useState("");
-
-  let history = useHistory();
 
   if(!props.session.logged_in) {
     return <AuthRequired />;
@@ -39,7 +36,7 @@ export default function ApiGen(props: ApiGenProps) {
       <div className="form">
           <span className="formTitle">API Key Generation</span>
             <p>
-              API keys can be used to interact programmatically with Codekata. API keys should be included as the <code>X-API-KEY</code> http header for each call. Documentation for the API calls can be found TODO.
+              API keys can be used to interact programmatically with Codekata. API keys should be included as the <code>X-API-KEY</code> http header for each call. Documentation for the API calls can be found <a href="https://github.com/edwardwawrzynek/codekata">here</a>.
             </p>
 
             {props.session.has_api_key && !generated && 

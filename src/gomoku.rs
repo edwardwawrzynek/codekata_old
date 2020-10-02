@@ -65,10 +65,14 @@ impl Gomoku {
 
     fn check_diags(&self, player: GamePlayer) -> bool {
         // up left diagonal
-        for i in 0..(BOARD_SIZE*2 -1) {
+        for i in 0..(BOARD_SIZE * 2 - 1) {
             let mut count = 0;
-            let j = if i < BOARD_SIZE { 0 } else { i - BOARD_SIZE + 1 };
-            let z = if i < BOARD_SIZE { i + 1} else { BOARD_SIZE };
+            let j = if i < BOARD_SIZE {
+                0
+            } else {
+                i - BOARD_SIZE + 1
+            };
+            let z = if i < BOARD_SIZE { i + 1 } else { BOARD_SIZE };
             for y in j..z {
                 let x = i - y;
 
@@ -82,12 +86,20 @@ impl Gomoku {
                     return true;
                 }
             }
-        };
+        }
         // down right diagonal
-        for i in 0..(BOARD_SIZE*2 - 1) {
+        for i in 0..(BOARD_SIZE * 2 - 1) {
             let mut count = 0;
-            let j = if i < BOARD_SIZE { BOARD_SIZE - i - 1 } else { 0 };
-            let z = if i < BOARD_SIZE { BOARD_SIZE } else { BOARD_SIZE*2 - i - 1 };
+            let j = if i < BOARD_SIZE {
+                BOARD_SIZE - i - 1
+            } else {
+                0
+            };
+            let z = if i < BOARD_SIZE {
+                BOARD_SIZE
+            } else {
+                BOARD_SIZE * 2 - i - 1
+            };
             for y in j..z {
                 let x = i + y + 1 - BOARD_SIZE;
 
@@ -142,7 +154,6 @@ impl Game for Gomoku {
     }
 
     fn state(&self, for_player: GamePlayer) -> Self::State {
-
         let mut res = self.clone();
         if for_player == 0 {
             res
@@ -159,7 +170,6 @@ impl Game for Gomoku {
 
             res
         }
-
     }
 
     fn finished(&self) -> bool {

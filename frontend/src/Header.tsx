@@ -2,7 +2,7 @@ import React, { Component, Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import './Header.css';
 import './flex.css';
-import { DELETE_SESSION, GET_USER, rejectedPromiseHandler, SessionInfo } from './api';
+import { DELETE_SESSION, rejectedPromiseHandler, SessionInfo } from './api';
 
 export interface HeaderProps {
   session: SessionInfo,
@@ -13,10 +13,6 @@ export default class Header extends Component<HeaderProps, any> {
 
   state = {
     user_menu_toggled: false,
-  }
-
-  constructor(props: HeaderProps) {
-    super(props);
   }
 
   logged_out_btns() {

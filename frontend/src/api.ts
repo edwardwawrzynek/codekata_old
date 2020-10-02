@@ -1,4 +1,4 @@
-export const API_ROUTE = process.env.NODE_ENV == "development" ? "http://localhost:8000/api" : "/api";
+export const API_ROUTE = process.env.NODE_ENV === "development" ? "http://localhost:8000/api" : "/api";
 export const GET_USER = `${API_ROUTE}/user`;
 export const NEW_USER = `${API_ROUTE}/user/new`;
 export const NEW_SESSION = `${API_ROUTE}/session/new`;
@@ -28,7 +28,7 @@ export const rejectedPromiseHandler = (e: any) => {
 }
 
 export const checkError = (e: any): boolean => {
-  if(e.error != undefined) {
+  if(e.error !== undefined) {
     alert(`error: ${e.error}`);
     return false;
   } else {

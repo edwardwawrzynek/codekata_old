@@ -1,11 +1,8 @@
-import React, { Component, Fragment, useEffect, useState, useRef } from 'react';
-import { Link, Redirect } from 'react-router-dom';
+import React, { Fragment, useEffect, useState, useRef } from 'react';
 import './form.css';
 import './flex.css';
 import './games.css';
-import { checkError, GAME_INDEX, GET_USER, NEW_SESSION, NEW_USER, postArgs, rejectedPromiseHandler, SessionInfo, USER_EDIT, GET_GAME, GAME_NEW, GAME_JOIN, GAME_LEAVE, GAME_START } from './api';
-import { useHistory } from "react-router-dom";
-import AuthRequired from './AuthRequired';
+import { checkError, GAME_INDEX, postArgs, rejectedPromiseHandler, SessionInfo, GET_GAME, GAME_NEW, GAME_JOIN, GAME_LEAVE, GAME_START } from './api';
 import Gomoku from './Gomoku';
 
 export const COLORS = ["black", "white"];
@@ -21,7 +18,7 @@ function NewGame(props: NewGameProps) {
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if(name == "") return;
+    if(name === "") return;
 
     fetch(GAME_NEW, {
       method: 'POST',
@@ -60,10 +57,8 @@ export default function Games(props: GamesProps) {
 
   const mountedRef = useRef(true);
 
-  let history = useHistory();
-
   function loadGames() {
-    if(shedId != -1) {
+    if(shedId !== -1) {
       window.clearTimeout(shedId);
     }
 
@@ -76,7 +71,7 @@ export default function Games(props: GamesProps) {
         setGames(games);
       }
     }).catch(rejectedPromiseHandler).finally(() => {
-      if(shedId != -1) {
+      if(shedId !== -1) {
         window.clearTimeout(shedId);
       }
       if(mountedRef.current) {
@@ -90,7 +85,7 @@ export default function Games(props: GamesProps) {
 
     return () => {
       mountedRef.current = false;
-      if(shedId != -1) window.clearTimeout(shedId);
+      if(shedId !== -1) window.clearTimeout(shedId);
     }
   }, []);
 
@@ -102,7 +97,7 @@ export default function Games(props: GamesProps) {
       {games.map((id) =>
         <Game id={id} session={props.session} game_update_callback={() => loadGames()} key={id} />
       )}
-      {(totalNumGames == -1 || numLoaded < totalNumGames + 3) &&
+      {(totalNumGames === -1 || numLoaded < totalNumGames + 3) &&
         <button onClick={
           () => { 
             setNumLoaded(numLoaded + 3);
@@ -110,7 +105,7 @@ export default function Games(props: GamesProps) {
           }
         } className="btn">Load More Games</button>
       }
-      {totalNumGames == 0 &&
+      {totalNumGames === 0 &&
         <p>No games found.</p>
       }
     </div>
@@ -130,15 +125,17 @@ export function Game(props: GameProps) {
   const mountedRef = useRef(true);
 
   function loadGame(id: number) {
-    if(shedId != -1) {
+    if(shedId !== -1) {
       window.clearTimeout(shedId);
     }
-    fetch(GET_GAME(id), {
+    fetch(GET_GAME(id) + "?dont_invert=true", {
       method: 'GET'
     }).then((resp) => resp.json()).then((json) => {
-      setGame(json);
+      if(checkError(json)) {
+        setGame(json);
+      }
     }).catch(rejectedPromiseHandler).finally(() => {
-      if(shedId != -1) {
+      if(shedId !== -1) {
         window.clearTimeout(shedId);
       }
       if(mountedRef.current) {
@@ -163,26 +160,26 @@ export function Game(props: GameProps) {
     
     return () => {
       mountedRef.current = false;
-      if(shedId != -1) {
+      if(shedId !== -1) {
         window.clearTimeout(shedId);
       }
     }
   }, []);
 
-  if(game == null) return (<div></div>);
+  if(game === null) return (<div></div>);
 
   let waitingOn = "";
   let waitingOnUs = false;
   let usInGame = false;
   for(let i = 0; i < game.waiting_on.length; i++) {
-    if(props.session.logged_in && props.session.id == game.player_ids[i]) {
+    if(props.session.logged_in && props.session.id === game.player_ids[i]) {
       usInGame = true;
     }
     if(game.waiting_on[i]) {
-      if (waitingOn != "") waitingOn += ", ";
+      if (waitingOn !== "") waitingOn += ", ";
       waitingOn += game.players[i];
 
-      if(props.session.logged_in && props.session.id == game.player_ids[i]) {
+      if(props.session.logged_in && props.session.id === game.player_ids[i]) {
         waitingOnUs = true;
       }
     }
@@ -197,7 +194,7 @@ export function Game(props: GameProps) {
       </div>
       <div className="flexShrink infoElem">
         <span>
-          {waitingOn != "" && <span>Waiting On: {waitingOn}</span>}
+          {waitingOn !== "" && <span>Waiting On: {waitingOn}</span>}
         </span>
       </div>
       <div className="flexExpand" />
@@ -212,7 +209,7 @@ export function Game(props: GameProps) {
   // figure out game action permissions
   const showJoin = !game.player_ids.includes(props.session.id);
   const showLeave = !showJoin;
-  const showStart = game.owner_id == props.session.id;
+  const showStart = game.owner_id === props.session.id;
 
   const action_controls = (props.session.logged_in && !game.started) && (
     <Fragment>
@@ -245,14 +242,14 @@ export function Game(props: GameProps) {
         </span>
       </div>
       <div className="gamePlayers">
-        {game.players.length == 0 &&
+        {game.players.length === 0 &&
           <div 
             className="gamePlayer" 
             style={{backgroundColor: "#aaa"}}>
               No Players Yet
           </div>
         }
-        {game.players.length != 0 &&
+        {game.players.length !== 0 &&
           game.players.map((player: string, index: number) =>
             <div className="gamePlayer" style={{backgroundColor: COLORS[index], color: TEXT_COLORS[index]}} key={index}>{player}</div>
           )

@@ -1,7 +1,6 @@
-import React, { Component, Fragment, useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import './form.css';
 import './flex.css';
-import { render } from 'react-dom';
 import { checkError, GAME_MOVE, postArgs, rejectedPromiseHandler } from './api';
 
 export interface GomokuProps {
@@ -40,14 +39,14 @@ export default function Gomoku(props: GomokuProps) {
       ctx.lineTo(w - CELL_SIZE, x);
       ctx.stroke();
     }
-    if(props.state == null) {
+    if(props.state === null) {
       return;
     }
 
     // draw pieces
     for(let x = 0; x < BOARD_SIZE; x++) {
       for(let y = 0; y < BOARD_SIZE; y++) {
-        if(props.state.board[x][y] == -1) {
+        if(props.state.board[x][y] === -1) {
           continue;
         }
         let color = props.colors[props.state.board[x][y]];

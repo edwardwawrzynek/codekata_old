@@ -1,8 +1,7 @@
-import React, { Component, Fragment, useState } from 'react';
-import { Link, Redirect } from 'react-router-dom';
+import React, { useState } from 'react';
 import './form.css';
 import './flex.css';
-import { GET_USER, NEW_SESSION, NEW_USER, postArgs, rejectedPromiseHandler } from './api';
+import { NEW_SESSION, postArgs, rejectedPromiseHandler } from './api';
 import { useHistory } from "react-router-dom";
 
 export interface LogInProps {
@@ -30,7 +29,7 @@ export default function LogIn(props: LogInProps) {
           password: password,
         }),
       }).then(resp => (resp.json())).then(json => {
-        if(json.error != undefined) {
+        if(json.error !== undefined) {
           setErrorMsg(json.error);
         } else {
           props.callback();
@@ -44,7 +43,7 @@ export default function LogIn(props: LogInProps) {
     <div className="formContainer">
         <form className="form" onSubmit={(e) => { submit(e); }}>
           <span className="formTitle">Codekata Log In</span>
-          {errorMsg != "" &&
+          {errorMsg !== "" &&
             <div className="error">
               {errorMsg}
             </div>

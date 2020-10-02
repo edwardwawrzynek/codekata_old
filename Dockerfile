@@ -17,4 +17,6 @@ WORKDIR /usr/src/codekata
 RUN cp codekata_db.sqlite.blank codekata_db.sqlite
 RUN cargo install --path .
 
+EXPOSE 8000
+
 CMD ROCKET_PORT=$PORT codekata

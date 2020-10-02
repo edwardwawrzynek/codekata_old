@@ -1,8 +1,7 @@
-import React, { Component, Fragment, useState } from 'react';
-import { Link, Redirect } from 'react-router-dom';
+import React, { useState } from 'react';
 import './form.css';
 import './flex.css';
-import { GET_USER, NEW_USER, postArgs, rejectedPromiseHandler } from './api';
+import { NEW_USER, postArgs, rejectedPromiseHandler } from './api';
 import { useHistory } from "react-router-dom";
 
 export interface SignUpProps {}
@@ -19,9 +18,9 @@ export default function SignUp(props: SignUpProps) {
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if(password != passwordAgain) {
+    if(password !== passwordAgain) {
       setErrorMsg("passwords don't match");
-    } else if(username == "" || displayName == "" || password == "") {
+    } else if(username === "" || displayName === "" || password === "") {
       setErrorMsg("Email, Display Name, and Password can't be empty.");
     } else {
       fetch(NEW_USER, {
@@ -32,7 +31,7 @@ export default function SignUp(props: SignUpProps) {
           display_name: displayName
         }),
       }).then(resp => (resp.json())).then(json => {
-        if(json.error != undefined) {
+        if(json.error !== undefined) {
           setErrorMsg(json.error);
         } else {
           history.push("/login");
@@ -45,7 +44,7 @@ export default function SignUp(props: SignUpProps) {
     <div className="formContainer">
         <form className="form" onSubmit={(e) => { submit(e); }}>
           <span className="formTitle">Codekata Sign Up</span>
-          {errorMsg != "" &&
+          {errorMsg !== "" &&
             <div className="error">
               {errorMsg}
             </div>
