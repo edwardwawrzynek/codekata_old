@@ -169,7 +169,7 @@ export function Game(props: GameProps) {
     }
   }, []);
 
-  if(game == null) return <div></div>;
+  if(game == null) return (<div></div>);
 
   let waitingOn = "";
   let waitingOnUs = false;
