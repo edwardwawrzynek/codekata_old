@@ -30,4 +30,4 @@ RUN if [ ! -f codekata_db.sqlite ]; then cargo install diesel_cli; touch codekat
 
 RUN cargo build --release
 
-CMD ROCKET_PORT=$PORT cargo run --release
+CMD rustup default nightly && ROCKET_PORT=$PORT cargo run --release
