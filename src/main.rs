@@ -6,6 +6,9 @@ extern crate rocket;
 extern crate rocket_contrib;
 #[macro_use]
 extern crate diesel;
+#[macro_use]
+extern crate diesel_migrations;
+
 extern crate dotenv;
 
 use rocket::http::Method;
@@ -19,6 +22,7 @@ pub mod models;
 pub mod schema;
 pub mod shared;
 pub mod users;
+pub mod run_migrations;
 
 use rocket::response::NamedFile;
 use std::path::{Path, PathBuf};
@@ -48,6 +52,9 @@ fn frontend_route(file: PathBuf) -> Option<NamedFile> {
 }
 
 fn main() {
+    // run db migrations
+    run_migrations::run_migrations();
+    // setup cors
     let cors = rocket_cors::CorsOptions {
         allowed_origins: AllowedOrigins::all(),
         allowed_methods: vec![Method::Get, Method::Post, Method::Put]
@@ -61,6 +68,7 @@ fn main() {
     .to_cors()
     .unwrap();
 
+    // start app
     rocket::ignite()
         .attach(cors)
         .attach(shared::DBConn::fairing())

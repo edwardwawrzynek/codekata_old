@@ -2,7 +2,7 @@ use rocket_contrib::json::Json;
 use serde::Serialize;
 
 #[database("db")]
-pub struct DBConn(pub(crate) diesel::SqliteConnection);
+pub struct DBConn(diesel::PgConnection);
 
 #[derive(Debug)]
 pub enum Error {

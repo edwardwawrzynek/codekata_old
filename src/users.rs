@@ -14,7 +14,6 @@ use diesel::prelude::*;
 use rocket::http::Status;
 use rocket::http::{Cookie, Cookies};
 use rocket::{Request, State};
-use rocket_contrib::databases::diesel::connection::SimpleConnection;
 use std::collections::HashMap;
 use std::sync::RwLock;
 
@@ -142,7 +141,6 @@ pub type UserManagerState<'a> = State<'a, RwLock<HashMap<String, PlayerId>>>;
 impl<'a> UserManager<'a> {
     #[allow(unused_must_use)]
     pub fn new(db: DBConn, sessions: &'a RwLock<HashMap<String, PlayerId>>) -> Self {
-        db.0.batch_execute("PRAGMA busy_timeout = 3000;");
         UserManager { db, sessions }
     }
 
@@ -177,21 +175,8 @@ impl<'a> UserManager<'a> {
                 api_key_hash: None,
             };
 
-            let inserted_users = (self.db).transaction::<_, diesel::result::Error, _>(|| {
-                let insert_count = diesel::insert_into(users::table)
-                    .values(&new_user)
-                    .execute(&*self.db)?;
-                assert_eq!(insert_count, 1);
-
-                Ok(users::dsl::users
-                    .order(users::id.desc())
-                    .limit(insert_count as i64)
-                    .load(&*self.db)?
-                    .into_iter()
-                    .collect::<Vec<User>>())
-            })?;
-
-            Ok(PlayerId(inserted_users[0].id))
+            let res = diesel::insert_into(users::table).values(&new_user).get_result::<User>(&*self.db)?;
+            Ok(PlayerId(res.id))
         }
     }
 

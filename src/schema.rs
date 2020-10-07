@@ -1,17 +1,17 @@
 table! {
     db_games (id) {
-        id -> Integer,
-        title -> Text,
+        id -> Int4,
+        title -> Varchar,
         state -> Nullable<Text>,
-        owner_id -> Integer,
-        players -> Text,
-        active -> Integer,
+        owner_id -> Int4,
+        players -> Varchar,
+        active -> Int4,
     }
 }
 
 table! {
     users (id) {
-        id -> Integer,
+        id -> Int4,
         username -> Text,
         display_name -> Text,
         password_hash -> Text,
@@ -19,4 +19,7 @@ table! {
     }
 }
 
-allow_tables_to_appear_in_same_query!(db_games, users,);
+allow_tables_to_appear_in_same_query!(
+    db_games,
+    users,
+);

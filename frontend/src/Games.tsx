@@ -263,7 +263,7 @@ export function Game(props: GameProps) {
         {waitingOnUs && <span>It is your turn. Click where you would like to move.</span>}
         {!waitingOnUs && usInGame && <span>It is not your turn.</span>}
       </div>
-      <Gomoku colors={COLORS} id={props.id} state={game.state} width={Math.min(window.innerWidth - 100, 700)} height={Math.min(window.innerWidth - 100, 700)} do_play={waitingOnUs} />
+      <Gomoku colors={COLORS} id={props.id} state={game.state} width={Math.min(window.innerWidth - 30, 700)} height={Math.min(window.innerWidth - 30, 700)} do_play={waitingOnUs} />
     </div>
   );
 }

@@ -6,7 +6,6 @@ use core::fmt::Debug;
 use diesel::prelude::*;
 use rocket::request::Form;
 use rocket::State;
-use rocket_contrib::databases::diesel::connection::SimpleConnection;
 use rocket_contrib::json::Json;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -129,7 +128,6 @@ struct AppState<'a, G: Game> {
 impl<'a, G: Game> AppState<'a, G> {
     #[allow(unused_must_use)]
     pub fn new(db: DBConn, manager: &'a RwLock<GameManager<G>>) -> Self {
-        db.0.batch_execute("PRAGMA busy_timeout = 3000;");
         AppState { db, manager }
     }
 
@@ -175,22 +173,8 @@ impl<'a, G: Game> AppState<'a, G> {
             state: None,
         };
 
-        // in order to get the assigned id, we do an INSERT than SELECT for highest id (sqlite doesn't support RETURNING)
-        let inserted_games = self.db.transaction::<_, diesel::result::Error, _>(|| {
-            let insert_count = diesel::insert_into(db_games::table)
-                .values(&game)
-                .execute(&*self.db)?;
-            assert_eq!(insert_count, 1);
-
-            Ok(db_games::dsl::db_games
-                .order(db_games::id.desc())
-                .limit(insert_count as i64)
-                .load(&*self.db)?
-                .into_iter()
-                .collect::<Vec<DbGame>>())
-        })?;
-
-        let id = GameId(inserted_games[0].id);
+        let inserted_game = diesel::insert_into(db_games::table).values(&game).get_result::<DbGame>(&*self.db)?;
+        let id = GameId(inserted_game.id);
 
         let mut manager = self.manager.write().unwrap();
         manager.active_games.insert(

@@ -3,7 +3,7 @@ MAINTAINER edward@wawrzynek.com
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \
-  build-essential nodejs npm libsqlite3-dev
+  build-essential nodejs npm
 
 # Copy over source
 WORKDIR /usr/src/codekata
@@ -14,9 +14,8 @@ RUN npm install
 RUN npm run build
 # Build Rust app
 WORKDIR /usr/src/codekata
-RUN cp codekata_db.sqlite.blank codekata_db.sqlite
 RUN cargo install --path .
 
 EXPOSE 8000
 
-CMD ROCKET_PORT=$PORT codekata
+CMD ROCKET_PORT=$PORT ROCKET_DATABASES="{db={url=$DATABASE_URL}}" codekata
