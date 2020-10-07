@@ -19,10 +19,10 @@ use std::sync::RwLock;
 pub mod game;
 pub mod game_manage;
 pub mod models;
+pub mod run_migrations;
 pub mod schema;
 pub mod shared;
 pub mod users;
-pub mod run_migrations;
 
 use rocket::response::NamedFile;
 use std::path::{Path, PathBuf};

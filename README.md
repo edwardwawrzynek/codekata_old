@@ -2,19 +2,19 @@
 
 A tool for running programming compeitions to play abstract board games. Currently, it is configured to run the game [gomoku](https://en.wikipedia.org/wiki/Gomoku).
 
-Codekata is deployed at [https://codekata.herokuapp.com](https://codekata.herokuapp.com). If you are writing a client, it is reccomened you test against this deployment.
+Codekata is deployed at [https://codekata.herokuapp.com](https://codekata.herokuapp.com). If you are writing a client, it is recommended you test against this deployment.
 
-If you need to run codekata locally, see the "Setup" secion below.
+If you need to run codekata locally, see the "Local Setup" section below.
 
 ## Gomoku
 Gomoku is played on a 15 x 15 board. Players take turns alternating placing stones, and the first player to get five or more stones in a row, column, or diagonal wins.
 
 ## API Routes
-API keys have to be included in all requests as an `X-API-KEY` http header (not as a request parameter).
+API keys have to be included in all requests as an `X-API-KEY` http header (not as a request parameter). All routes return valid json.
 
 #### `POST /api/game/<game_id>/join`
 Join the given game. Returns:
-```json
+```
 { "success": boolean }
 ```
 If the `success` field is false, the response also includes a `error` field explaining what went wrong.
@@ -22,13 +22,13 @@ If the `success` field is false, the response also includes a `error` field expl
 #### `GET /api/game/<game_id>/move_needed`
 Check if you need to make a move.
 Returns:
-```json
+```
 { "needed": boolean }
 ```
 
 #### `GET /api/game/<game_id>`
 Returns that state of the board. Returns:
-```json
+```
 {
   "state" : {
     "board": [
@@ -46,7 +46,7 @@ The `state.board` field is indexed `[x][y]`. A value of `-1` indicates the cell 
 #### `POST /api/game/<game_id>/move - params(x: int, y: int)`
 
 Make a move at the given x and y position. Returns:
-```json
+```
 { "success": boolean }
 ```
 
@@ -62,24 +62,14 @@ If `success` is false, the response will include an `error` field describing wha
 
 All requests need your api key sent as the `X-API-KEY` http header -- look at your library's documentation for how to do this.
 
-## Docker Setup
-1. Install [docker](https://www.docker.com/).
-2. Clone the repo (`git clone https://github.com/edwardwawrzynek/codekata`)
-3. Build the image and run:
-```shell script
-docker build . -t codekata
-docker run --env PORT=8000 -p 8000:8000 codekata
-```
+## Local Setup
 
-Serves on http://localhost:8000.
-
-## Manual Setup
-
-1. Install [node and npm](https://nodejs.org/en/download/), [rust](https://www.rust-lang.org/tools/install), and [sqlite](https://sqlite.org/index.html).
+1. Install [node and npm](https://nodejs.org/en/download/), [rust](https://www.rust-lang.org/tools/install), and [postgres](https://www.postgresql.org/).
 2. Clone this repo (`git clone https://github.com/edwardwawrzynek/codekata`)
-3. Build the frontend (`cd frontend; npm install; npm run build; cd ..`)
-4. Use nightly rust (`rustup default nightly`)
-5. Copy the sample DB (`cp codekata_db.sqlite.blank codekata_db.sqlite`)
-6. Build and start the server (`cargo run`)
+3. Use nightly rust (`rustup default nightly`)
+4. Install the diesel cli (`cargo install diesel_cli`)
+5. Create the postgres database (`DATABASE_URL=postgres://postgres:@localhost/codekata_db diesel setup`)
+6. Build and start the server (`ROCKET_PORT=8000 DATABASE_URL=postgres://postgres:@localhost/codekata_db ROCKET_DATABASES="{db={url=$DATABASE_URL}}" cargo run`)
+7. At the same time, start the frontend (`cd frontend && npm i && npm start`)
 
-Serves on http://localhost:8000.
+The frontend serves on http://localhost:3000.

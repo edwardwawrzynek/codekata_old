@@ -4,6 +4,7 @@ import './flex.css';
 import './games.css';
 import { checkError, GAME_INDEX, postArgs, rejectedPromiseHandler, SessionInfo, GET_GAME, GAME_NEW, GAME_JOIN, GAME_LEAVE, GAME_START } from './api';
 import Gomoku from './Gomoku';
+import { Link, useParams } from 'react-router-dom';
 
 export const COLORS = ["black", "white"];
 export const TEXT_COLORS = ["white", "black"];
@@ -116,6 +117,7 @@ export interface GameProps {
   id: number,
   session: SessionInfo,
   game_update_callback: () => void,
+  show_expand?: boolean,
 }
 
 export function Game(props: GameProps) {
@@ -235,7 +237,7 @@ export function Game(props: GameProps) {
     <div className="gameCont">
       <div className="gameTitle">
         <span className="gameTitle">
-          {game.name}
+          <Link to={`/game/${props.id}`}>{game.name} {props.show_expand != false && "⮞"}</Link>
         </span>
         <span className="gameId">
           <code>ID {props.id}</code>
@@ -266,4 +268,20 @@ export function Game(props: GameProps) {
       <Gomoku colors={COLORS} id={props.id} state={game.state} width={Math.min(window.innerWidth - 30, 700)} height={Math.min(window.innerWidth - 30, 700)} do_play={waitingOnUs} />
     </div>
   );
+}
+
+export interface UrlGameProps {
+  session: SessionInfo,
+};
+
+interface UrlGameUrlParams {
+  game_id: string;
+}
+
+export function UrlGame(props: UrlGameProps) {
+  const { game_id } = useParams<UrlGameUrlParams>();
+
+  return (
+    <Game game_update_callback={() => {}} session={props.session} id={parseInt(game_id, 10)} show_expand={false} />
+  )
 }

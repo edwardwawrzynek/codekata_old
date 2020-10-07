@@ -10,7 +10,7 @@ import LogIn from './LogIn';
 import { GET_USER, rejectedPromiseHandler } from './api';
 import ApiGen from './ApiGen';
 import EditUser from './EditUser';
-import Games from './Games';
+import Games, { UrlGame } from './Games';
 
 export default class App extends Component<{}, any> {
   state = {
@@ -66,6 +66,9 @@ export default class App extends Component<{}, any> {
             </Route>
             <Route exact path="/user_edit">
               <EditUser session={this.state.session} session_change_callback={this.update_session} />
+            </Route>
+            <Route path="/game/:game_id">
+              <UrlGame session={this.state.session} />
             </Route>
             <Route path="/">
               <NotFound />

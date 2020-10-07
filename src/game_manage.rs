@@ -173,7 +173,9 @@ impl<'a, G: Game> AppState<'a, G> {
             state: None,
         };
 
-        let inserted_game = diesel::insert_into(db_games::table).values(&game).get_result::<DbGame>(&*self.db)?;
+        let inserted_game = diesel::insert_into(db_games::table)
+            .values(&game)
+            .get_result::<DbGame>(&*self.db)?;
         let id = GameId(inserted_game.id);
 
         let mut manager = self.manager.write().unwrap();
@@ -397,11 +399,11 @@ pub fn game_get_user_authd(
     db: DBConn,
     state: AppReqState,
     user: ForwardingUser,
-    dont_invert: Option<bool>
+    dont_invert: Option<bool>,
 ) -> Result<Json<GameResp<crate::GameType>>, Json<ErrorResp>> {
     let player_id = match dont_invert {
         None | Some(false) => user.0.id,
-        Some(true) => 0
+        Some(true) => 0,
     };
     game_get_internal(player_id, id, db, state)
 }
@@ -411,7 +413,7 @@ pub fn game_get(
     id: i32,
     db: DBConn,
     state: AppReqState,
-    dont_invert: Option<bool>
+    dont_invert: Option<bool>,
 ) -> Result<Json<GameResp<crate::GameType>>, Json<ErrorResp>> {
     game_get_internal(0, id, db, state)
 }

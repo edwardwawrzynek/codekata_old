@@ -175,7 +175,9 @@ impl<'a> UserManager<'a> {
                 api_key_hash: None,
             };
 
-            let res = diesel::insert_into(users::table).values(&new_user).get_result::<User>(&*self.db)?;
+            let res = diesel::insert_into(users::table)
+                .values(&new_user)
+                .get_result::<User>(&*self.db)?;
             Ok(PlayerId(res.id))
         }
     }
