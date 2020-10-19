@@ -26,6 +26,7 @@ pub enum Error {
     GameNotStarted,
     WrongTurn,
     InvalidMove,
+    NotAdmin,
 }
 
 impl From<serde_json::Error> for Error {
@@ -76,6 +77,7 @@ impl From<Error> for ErrorResp {
                 Error::GameNotStarted => "game has not started yet".to_string(),
                 Error::WrongTurn => "player played out of turn".to_string(),
                 Error::InvalidMove => "invalid move".to_string(),
+                Error::NotAdmin => "player does not have admin authorization".to_string(),
             },
             success: false,
         }

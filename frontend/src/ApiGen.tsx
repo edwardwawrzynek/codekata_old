@@ -36,7 +36,11 @@ export default function ApiGen(props: ApiGenProps) {
       <div className="form">
           <span className="formTitle">API Key Generation</span>
             <p>
-              API keys can be used to interact programmatically with Codekata. API keys should be included as the <code>X-API-KEY</code> http header for each call. Documentation for the API calls can be found <a href="https://github.com/edwardwawrzynek/codekata">here</a>.
+              API keys can be used to interact programmatically with Codekata.
+            </p>
+
+            <p>
+              API documentation can be found <Link to="/pages/api_doc">here</Link>.
             </p>
 
             {props.session.has_api_key && !generated && 

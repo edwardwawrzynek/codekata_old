@@ -63,6 +63,13 @@ export default class Header extends Component<HeaderProps, any> {
             <div>
               <Link to="/" onClick={this.logout}>Log Out</Link>
             </div>
+            { this.props.session.is_admin &&
+              <div>
+                <Link to="/new_page" onClick={
+                  () => {this.setState({user_menu_toggled: false})}
+                }>New Page</Link>
+              </div>
+            }
           </div>
         }
       </div>
@@ -79,6 +86,9 @@ export default class Header extends Component<HeaderProps, any> {
         <div className="flexHorizontal">
           <div className="flexShrink">
             <Link to=""><span>Codekata</span></Link>
+          </div>
+          <div className="flexShrink headerBtn">
+            <Link to="/pages/about"><span>About</span></Link>
           </div>
           <div className="flexExpand" />
           { this.header_btns() }

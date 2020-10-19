@@ -173,6 +173,7 @@ impl<'a> UserManager<'a> {
                 display_name,
                 password_hash: &*bcrypt::hash(password.as_bytes(), BCRYPT_COST)?,
                 api_key_hash: None,
+                is_admin: false,
             };
 
             let res = diesel::insert_into(users::table)
@@ -419,6 +420,7 @@ pub struct UserResp {
     display_name: String,
     has_api_key: bool,
     id: i32,
+    is_admin: bool,
 }
 
 #[get("/user")]
@@ -428,6 +430,7 @@ pub fn user_get(user: User) -> Json<UserResp> {
         display_name: user.display_name,
         has_api_key: user.api_key_hash.is_some(),
         id: user.id,
+        is_admin: user.is_admin,
     })
 }
 

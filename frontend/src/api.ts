@@ -7,6 +7,8 @@ export const GEN_API_KEY = `${API_ROUTE}/user/generate_api`;
 export const USER_EDIT = `${API_ROUTE}/user/edit`;
 export const GAME_INDEX = `${API_ROUTE}/game/index`;
 export const GAME_NEW = `${API_ROUTE}/game/new`;
+export const PAGE_EDIT = `${API_ROUTE}/pages/edit`;
+export const PAGE_NEW = `${API_ROUTE}/pages/new`;
 export function GET_GAME(id: number) {
   return `${API_ROUTE}/game/${id}`;
 }
@@ -21,6 +23,9 @@ export function GAME_START(id: number) {
 }
 export function GAME_MOVE(id: number) {
   return `${API_ROUTE}/game/${id}/move`;
+}
+export function PAGE_GET(path: string) {
+  return `${API_ROUTE}/pages/${path}`;
 }
 
 export const rejectedPromiseHandler = (e: any) => {
@@ -42,6 +47,7 @@ export interface SessionInfo {
   username: string,
   display_name: string,
   id: number,
+  is_admin: boolean,
 }
 
 export function postArgs(args: {[key: string]: string}): URLSearchParams {

@@ -91,7 +91,7 @@ export default function Games(props: GamesProps) {
   }, []);
 
   return (
-    <div className="gamesContainer">
+    <div className="pageContainer">
       {props.session.logged_in &&
         <NewGame game_update_callback={() => loadGames()} />
       }
@@ -282,6 +282,8 @@ export function UrlGame(props: UrlGameProps) {
   const { game_id } = useParams<UrlGameUrlParams>();
 
   return (
-    <Game game_update_callback={() => {}} session={props.session} id={parseInt(game_id, 10)} show_expand={false} />
+    <div className="gameCont">
+      <Game game_update_callback={() => {}} session={props.session} id={parseInt(game_id, 10)} show_expand={false} />
+    </div>
   )
 }

@@ -2,10 +2,10 @@
   width: 100%;
   display: flex;
   justify-content: center;
+  margin: 2rem 0 0 0;
 }
 
 .form {
-  margin: 2rem 0 0 0;
   min-width: calc(min(400px, 90%));
   max-width: 600px;
 }
@@ -39,6 +39,16 @@ input[type=submit] {
   margin: 0 auto 1rem auto;
 }
 
+textarea {
+  width: calc(100% - 1rem);
+  padding: 0.5rem;
+  font-size: 1rem;
+
+  border: 1px solid black;
+  color: black;
+  min-height: 75vh;
+}
+
 .btn {
   display: table;
   margin: 0 auto;
@@ -49,11 +59,11 @@ input[type=submit] {
   border: 1px solid black;
 }
 
-a {
+.linkBlack {
   color: black;
 }
 
-.btn:link, a:link {
+.btn:link, .linkBlack:link {
   text-decoration: none;
 }
 

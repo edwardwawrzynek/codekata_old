@@ -1,9 +1,11 @@
 use crate::game::{Game, GameOutcome, GamePlayer};
-use crate::models::{DbGame, InsertDbGame, NewDbGame, User};
+use crate::models::{DbGame, InsertDbGame, NewDbGame, NewTournament, Tournament, User};
 use crate::shared::{DBConn, Error, ErrorResp, IdResp, SuccessResp};
 use crate::users::{ForwardingUser, PlayerId};
+use crate::TOURNAMENT_GAME_PLAYERS;
 use core::fmt::Debug;
 use diesel::prelude::*;
+use itertools::Itertools;
 use rocket::request::Form;
 use rocket::State;
 use rocket_contrib::json::Json;
@@ -27,6 +29,21 @@ impl ToString for GameId {
     }
 }
 
+#[derive(PartialEq, Eq, Copy, Clone, Hash, Serialize, Deserialize, Default, Debug)]
+pub struct TournamentId(i32);
+
+impl TournamentId {
+    fn id(&self) -> i32 {
+        self.0
+    }
+}
+
+impl ToString for TournamentId {
+    fn to_string(&self) -> String {
+        self.0.to_string()
+    }
+}
+
 #[derive(Clone, Debug)]
 struct GameInstance<G: Game> {
     /// If the game has not yet started, game is None
@@ -36,6 +53,8 @@ struct GameInstance<G: Game> {
     name: String,
     owner: PlayerId,
     id: GameId,
+
+    is_public: bool,
 }
 
 impl<G: Game> GameInstance<G> {
@@ -83,6 +102,7 @@ impl<G: Game> TryFrom<DbGame> for GameInstance<G> {
             players,
             name: entry.title,
             owner: PlayerId::new(entry.owner_id),
+            is_public: entry.is_public,
         })
     }
 }
@@ -104,6 +124,7 @@ impl<'a, G: Game> From<&'a GameInstance<G>> for InsertDbGame<'a> {
             owner_id: inst.owner.id(),
             players,
             active: if inst.active() { 1 } else { 0 },
+            is_public: inst.is_public,
         }
     }
 }
@@ -171,6 +192,7 @@ impl<'a, G: Game> AppState<'a, G> {
             owner_id: owner.id(),
             title: name,
             state: None,
+            is_public: true,
         };
 
         let inserted_game = diesel::insert_into(db_games::table)
@@ -187,6 +209,7 @@ impl<'a, G: Game> AppState<'a, G> {
                 name: name.to_string(),
                 owner,
                 id,
+                is_public: inserted_game.is_public,
             },
         );
 
@@ -300,11 +323,115 @@ impl<'a, G: Game> AppState<'a, G> {
         use crate::schema::db_games;
 
         let ids = db_games::dsl::db_games
+            .filter(db_games::dsl::is_public.eq(true))
             .select(db_games::dsl::id)
             .order(db_games::id.desc())
             .load::<i32>(&*self.db)?;
 
         Ok(ids)
+    }
+
+    /// create a new tournament
+    fn new_tournament(&self, name: &str, owner: PlayerId) -> Result<TournamentId, Error> {
+        use crate::schema::tournaments;
+
+        let tournament = NewTournament {
+            owner_id: owner.id(),
+            name,
+            players: vec![],
+            games: None,
+        };
+
+        let inserted = diesel::insert_into(tournaments::table)
+            .values(&tournament)
+            .get_result::<Tournament>(&*self.db)?;
+
+        Ok(TournamentId(inserted.id))
+    }
+
+    /// find a tournament from db
+    fn get_tournament(&self, id: TournamentId) -> Result<Tournament, Error> {
+        use crate::schema::tournaments;
+
+        Ok(tournaments::dsl::tournaments
+            .find(id.0)
+            .first::<Tournament>(&*self.db)?)
+    }
+
+    /// save a tournament to db
+    fn save_tournament(&self, tournament: &Tournament) -> Result<(), Error> {
+        use crate::schema::tournaments;
+
+        diesel::update(tournaments::dsl::tournaments.find(tournament.id))
+            .set(tournament)
+            .execute(&*self.db)?;
+        Ok(())
+    }
+
+    /// join a tournament
+    fn join_tournament(
+        &self,
+        tournament_id: TournamentId,
+        player_id: PlayerId,
+    ) -> Result<(), Error> {
+        let mut tournament = self.get_tournament(tournament_id)?;
+
+        if tournament.games.is_some() {
+            Err(Error::GameAlreadyStarted)
+        } else {
+            if tournament.players.contains(&player_id.id()) {
+                Err(Error::AlreadyInGame)
+            } else {
+                tournament.players.push(player_id.id());
+                self.save_tournament(&tournament)?;
+
+                Ok(())
+            }
+        }
+    }
+
+    /// leave a tournament
+    fn leave_tournament(&self, id: TournamentId, player_id: PlayerId) -> Result<(), Error> {
+        let mut tournament = self.get_tournament(id)?;
+
+        if tournament.games.is_some() {
+            Err(Error::GameAlreadyStarted)
+        } else {
+            if !tournament.players.contains(&player_id.id()) {
+                Err(Error::NotJoinedGame)
+            } else {
+                tournament
+                    .players
+                    .iter()
+                    .position(|id| *id == player_id.id())
+                    .map(|pos| tournament.players.remove(pos));
+                self.save_tournament(&tournament)?;
+                Ok(())
+            }
+        }
+    }
+
+    /// start a tournament and generate match schedule
+    fn start_tournament(&self, id: TournamentId, player_id: PlayerId) -> Result<(), Error> {
+        let mut tournament = self.get_tournament(id)?;
+
+        if tournament.owner_id != player_id.id() {
+            Err(Error::NotGameOwner)
+        } else if tournament.games.is_some() {
+            Err(Error::GameAlreadyStarted)
+        } else {
+            for match_players in tournament
+                .players
+                .iter()
+                .combinations(TOURNAMENT_GAME_PLAYERS)
+            {
+                // TODO
+            }
+
+            panic!("todo");
+
+            Ok(())
+        }
     }
 }
 

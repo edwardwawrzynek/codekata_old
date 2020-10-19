@@ -1,0 +1,5 @@
+CREATE TABLE pages (
+   id SERIAL PRIMARY KEY,
+   url TEXT NOT NULL,
+   content TEXT NOT NULL
+)

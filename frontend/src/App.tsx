@@ -7,14 +7,19 @@ import {
 import Header from './Header';
 import SignUp from './SignUp';
 import LogIn from './LogIn';
-import { GET_USER, rejectedPromiseHandler } from './api';
+import { GET_USER, rejectedPromiseHandler, SessionInfo } from './api';
 import ApiGen from './ApiGen';
 import EditUser from './EditUser';
 import Games, { UrlGame } from './Games';
+import Page from './Page';
 
-export default class App extends Component<{}, any> {
+interface AppState {
+  session: SessionInfo;
+}
+
+export default class App extends Component<{}, AppState> {
   state = {
-    session: { logged_in: false, has_api_key: false, username: "", display_name: "", id: -1 }
+    session: { logged_in: false, has_api_key: false, username: "", display_name: "", id: -1, is_admin: false }
   }
 
   update_session = () => {
@@ -29,6 +34,7 @@ export default class App extends Component<{}, any> {
           username: json.username,
           display_name: json.display_name,
           id: json.id,
+          is_admin: json.is_admin,
         }});
       } else {
         this.setState({session: {
@@ -37,6 +43,7 @@ export default class App extends Component<{}, any> {
           username: "",
           display_name: "",
           id: -1,
+          is_admin: false,
         }});
       }
     }).catch(rejectedPromiseHandler);
@@ -70,6 +77,12 @@ export default class App extends Component<{}, any> {
             <Route path="/game/:game_id">
               <UrlGame session={this.state.session} />
             </Route>
+            <Route path="/new_page">
+              <Page session={this.state.session} newPage={true}></Page>
+            </Route>
+            <Route path="/pages/*">
+              <Page session={this.state.session} newPage={false}></Page>
+            </Route>
             <Route path="/">
               <NotFound />
             </Route>
@@ -80,7 +93,7 @@ export default class App extends Component<{}, any> {
   }
 }
 
-function NotFound(props: {}) {
+export function NotFound(props: {}) {
   return (
     <p style={{textAlign: "center", fontSize: "2rem"}}>Page Not Found</p>
   );

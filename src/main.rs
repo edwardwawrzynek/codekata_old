@@ -19,6 +19,7 @@ use std::sync::RwLock;
 pub mod game;
 pub mod game_manage;
 pub mod models;
+pub mod pages;
 pub mod run_migrations;
 pub mod schema;
 pub mod shared;
@@ -31,6 +32,7 @@ pub mod gomoku;
 use gomoku::Gomoku;
 
 pub type GameType = Gomoku;
+pub const TOURNAMENT_GAME_PLAYERS: usize = 2;
 
 /// routes to serve frontend
 #[get("/", rank = 9)]
@@ -91,7 +93,10 @@ fn main() {
                 users::user_edit,
                 users::session_new,
                 users::session_delete,
-                users::user_generate_api_key
+                users::user_generate_api_key,
+                pages::page_new,
+                pages::page_get,
+                pages::page_edit,
             ],
         )
         .mount("/", routes![frontend_route, frontend_root])
